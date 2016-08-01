@@ -34,11 +34,11 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 
 
 
-    @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
-    @octoprint.server.util.flask.restricted_access
-    @octoprint.server.admin_permission.require(403)
-    def make_marlin(self):
-        return flask.make_response("Ok.", 200)
+#     @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
+#     @octoprint.server.util.flask.restricted_access
+#     @octoprint.server.admin_permission.require(403)
+#     def make_marlin(self):
+#         return flask.make_response("Ok.", 200)
         
 #         if self._printer.is_printing():
 #             self._send_status(status_type="flashing_status", status_value="error", status_description="Printer is busy")
