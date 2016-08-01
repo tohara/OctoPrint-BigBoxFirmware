@@ -34,22 +34,23 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 
 
 
-#     @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
-#     @octoprint.server.util.flask.restricted_access
-#     @octoprint.server.admin_permission.require(403)
-#     def make_marlin(self):
-#         pass
-# #         if self._printer.is_printing():
-# #             self._send_status(status_type="flashing_status", status_value="error", status_description="Printer is busy")
-# #             self._logger.debug(u"Printer is busy")
-# #             return flask.make_response("Error.", 500)
-# # 
-# #         if not self._check_avrdude():
-# #             self._send_status(status_type="flashing_status", status_value="error", status_description="Avrdude error")
-# #             return flask.make_response("Error.", 500)
-# # 
-# # 
-# #         return flask.make_response("Ok.", 200)
+    @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def make_marlin(self):
+        return flask.make_response("Ok.", 200)
+        
+#         if self._printer.is_printing():
+#             self._send_status(status_type="flashing_status", status_value="error", status_description="Printer is busy")
+#             self._logger.debug(u"Printer is busy")
+#             return flask.make_response("Error.", 500)
+# 
+#         if not self._check_avrdude():
+#             self._send_status(status_type="flashing_status", status_value="error", status_description="Avrdude error")
+#             return flask.make_response("Error.", 500)
+# 
+# 
+#         return flask.make_response("Ok.", 200)
     
     
 	##~~ SettingsPlugin mixin
