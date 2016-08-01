@@ -34,28 +34,10 @@ $(function() {
 
         self.inSettingsDialog = false;
 
-        self.selectHexPath = $("#settings_bigboxfirmware_selectHexPath");
-        self.configurationDialog = $("#settings_plugin_bigboxfirmware_configurationdialog");
         
         
         self.makeMarlin = function() {
-            if (!self.loginState.isAdmin()){
-                self.alertType("alert-warning")
-                self.alertMessage(gettext("Administrator privileges are needed to flash firmware."));
-                self.showAlert(true);
-                return false;
-            }
-            if (self.printerState.isPrinting() || self.printerState.isPaused()){
-                self.alertType("alert-warning")
-                self.alertMessage(gettext("Printer is printing. Please wait for the print to be finished."));
-                self.showAlert(true);
-                return false;
-            }
-           
-
-            self.isBusy(true);
-            self.showAlert(false);
-            self.progressBarText("Building firmware...");
+     
 
             $.ajax({
                 url: PLUGIN_BASEURL + "bigboxfirmware/make",
