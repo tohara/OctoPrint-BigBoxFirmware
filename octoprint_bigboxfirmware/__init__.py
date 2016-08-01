@@ -31,6 +31,11 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                            octoprint.plugin.AssetPlugin,
                            octoprint.plugin.SettingsPlugin,
                            octoprint.plugin.EventHandlerPlugin):
+    
+    
+    @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
+    def make_marlin(self):
+        return flask.make_response("Ok.", 200)
 
 
 
