@@ -37,6 +37,7 @@ $(function() {
         
         
         self.makeMarlin = function() {
+        	console.log('makeMarlin');
      
 
             $.ajax({
