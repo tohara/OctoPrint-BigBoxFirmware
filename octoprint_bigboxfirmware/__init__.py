@@ -1,6 +1,22 @@
 # coding=utf-8
 from __future__ import absolute_import
 
+import flask
+import json
+import os
+import requests
+import tempfile
+import time
+import urllib
+import urllib2
+import urlparse
+
+import octoprint.plugin
+
+import octoprint.server.util.flask
+from octoprint.server import admin_permission
+from octoprint.events import Events
+
 ### (Don't forget to remove me)
 # This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
 # as well as the plugin mixins it's subclassing from. This is really just a basic skeleton to get you started,
@@ -9,7 +25,6 @@ from __future__ import absolute_import
 #
 # Take a look at the documentation on what other plugin mixins are available.
 
-import octoprint.plugin
 
 class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                            octoprint.plugin.TemplatePlugin,
@@ -17,6 +32,25 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                            octoprint.plugin.SettingsPlugin,
                            octoprint.plugin.EventHandlerPlugin):
 
+
+
+    @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def make_marlin(self):
+        if self._printer.is_printing():
+            self._send_status(status_type="flashing_status", status_value="error", status_description="Printer is busy")
+            self._logger.debug(u"Printer is busy")
+            return flask.make_response("Error.", 500)
+
+        if not self._check_avrdude():
+            self._send_status(status_type="flashing_status", status_value="error", status_description="Avrdude error")
+            return flask.make_response("Error.", 500)
+
+
+        return flask.make_response("Ok.", 200)
+    
+    
 	##~~ SettingsPlugin mixin
 
 	def get_settings_defaults(self):
@@ -30,9 +64,9 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 		# Define your plugin's asset files to automatically include in the
 		# core UI here.
 		return dict(
-			js=["js/pidtune.js"],
-			css=["css/pidtune.css"],
-			less=["less/pidtune.less"]
+			js=["js/bigboxfirmware.js"],
+			css=["css/bigboxfirmware.css"],
+			less=["less/bigboxfirmware.less"]
 		)
 
 	##~~ Softwareupdate hook
@@ -57,7 +91,11 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 				pip="https://github.com/tohara/OctoPrint-BigBoxFirmware/archive/{target_version}.zip"
 			)
 		)
+        
+    #~~ Extra methods
 
+    def _send_status(self, status_type, status_value, status_description=""):
+        self._plugin_manager.send_plugin_message(self._identifier, dict(type="status", status_type=status_type, status_value=status_value, status_description=status_description))
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
