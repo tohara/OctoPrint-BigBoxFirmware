@@ -11,9 +11,11 @@ from __future__ import absolute_import
 
 import octoprint.plugin
 
-class BigBoxFirmwarePlugin(octoprint.plugin.SettingsPlugin,
-                    octoprint.plugin.AssetPlugin,
-                    octoprint.plugin.TemplatePlugin):
+class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
+                           octoprint.plugin.TemplatePlugin,
+                           octoprint.plugin.AssetPlugin,
+                           octoprint.plugin.SettingsPlugin,
+                           octoprint.plugin.EventHandlerPlugin):
 
 	##~~ SettingsPlugin mixin
 
@@ -48,7 +50,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.SettingsPlugin,
 				type="github_commit",
 				user="tohara",
 				repo="OctoPrint-BigBoxFirmware",
-                #branch="dev",
+                branch="dev",
 				current=self._plugin_version,
 
 				# update method: pip
