@@ -34,22 +34,22 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 
 
 
-    @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
-    @octoprint.server.util.flask.restricted_access
-    @octoprint.server.admin_permission.require(403)
-    def make_marlin(self):
-        pass
-#         if self._printer.is_printing():
-#             self._send_status(status_type="flashing_status", status_value="error", status_description="Printer is busy")
-#             self._logger.debug(u"Printer is busy")
-#             return flask.make_response("Error.", 500)
-# 
-#         if not self._check_avrdude():
-#             self._send_status(status_type="flashing_status", status_value="error", status_description="Avrdude error")
-#             return flask.make_response("Error.", 500)
-# 
-# 
-#         return flask.make_response("Ok.", 200)
+#     @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
+#     @octoprint.server.util.flask.restricted_access
+#     @octoprint.server.admin_permission.require(403)
+#     def make_marlin(self):
+#         pass
+# #         if self._printer.is_printing():
+# #             self._send_status(status_type="flashing_status", status_value="error", status_description="Printer is busy")
+# #             self._logger.debug(u"Printer is busy")
+# #             return flask.make_response("Error.", 500)
+# # 
+# #         if not self._check_avrdude():
+# #             self._send_status(status_type="flashing_status", status_value="error", status_description="Avrdude error")
+# #             return flask.make_response("Error.", 500)
+# # 
+# # 
+# #         return flask.make_response("Ok.", 200)
     
     
 	##~~ SettingsPlugin mixin
@@ -95,8 +95,6 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
     #~~ Extra methods
 
-    def _send_status(self, status_type, status_value, status_description=""):
-        self._plugin_manager.send_plugin_message(self._identifier, dict(type="status", status_type=status_type, status_value=status_value, status_description=status_description))
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
