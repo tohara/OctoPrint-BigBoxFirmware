@@ -65,105 +65,10 @@ $(function() {
                     selected_port: ''
                 }),
                 contentType: "application/json; charset=UTF-8"
-            })
-        }
-        
-        self.onDataUpdaterPluginMessage = function(plugin, data) {
-            if (plugin != "bigboxfirmware") {
-                return;
-            }
-            if (data.type == "status" && data.status_type == "check_update_status") {
-                if (data.status_value == "progress") {
-                    self.progressBarText(data.status_description);
-                    return;
-                }
-                if (data.status_value == "update_available") {
-                    if (!self.inSettingsDialog) {
-                        self.showUpdateAvailablePopup(data.status_description);
-                    }
-                    self.updateAvailable(true);
-                    self.isBusy(false);
-                    return;
-                }
-                if (data.status_value == "up_to_date") {
-                    self.updateAvailable(false);
-                    self.isBusy(false);
-                    self.showAlert(false);
-                    if (self.inSettingsDialog) {
-                        self.alertType("alert-success");
-                        self.alertMessage(data.status_description);
-                        self.showAlert(true);
-                    }
-                    return;
-                }
-                if (data.status_value == "error") {
-                    self.updateAvailable(false);
-                    self.isBusy(false);
-                    self.alertType("alert-danger");
-                    self.alertMessage(data.status_description);
-                    self.showAlert(true);
-                    return;
-                }
-            }
-            if (data.type == "status" && data.status_type == "flashing_status") {
-                if (data.status_value == "starting_flash") {
-                    self.isBusy(true);
-                } else if (data.status_value == "progress") {
-                    self.progressBarText(data.status_description);
-                } else if (data.status_value == "info") {
-                    self.alertType("alert-info");
-                    self.alertMessage(data.status_description);
-                    self.showAlert(true);
-                } else if (data.status_value == "successful") {
-                    self.showPopup("success", "Flashing Successful", "");
-                    self.isBusy(false);
-                    self.showAlert(false);
-                    self.hexFileName(undefined);
-                    self.hexFileURL(undefined);
-                } else if (data.status_value == "error") {
-                    self.showPopup("error", "Flashing Failed", data.status_description);
-                    self.isBusy(false);
-                    self.showAlert(false);
-                }
-            }
-        }
-        
-        // Popup Messages
-
-        self.showUpdateAvailablePopup = function(new_fw_version) {
-            self.updateAvailablePopup = new PNotify({
-                title: gettext('Firmware Update Available'),
-                text: gettext('Version ') + new_fw_version,
-                icon: true,
-                hide: false,
-                type: 'success',
-                buttons: {
-                    closer: true,
-                    sticker: false,
-                },
-                history: {
-                    history: false
-                }
             });
-        }
-
-        self.showPopup = function(message_type, title, text){
-            if (self.popup !== undefined){
-                self.closePopup();
-            }
-            self.popup = new PNotify({
-                title: gettext(title),
-                text: text,
-                type: message_type,
-                hide: false
-            });
-        }
-
-        self.closePopup = function() {
-            if (self.popup !== undefined) {
-                self.popup.remove();
-            }
-        }
+        };
+        
+        
 
     }
 
