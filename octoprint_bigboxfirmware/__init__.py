@@ -109,6 +109,21 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                     
         return flask.jsonify(isInstalled=isInstalled)
     
+    @octoprint.plugin.BlueprintPlugin.route("/firmwareprofiles", methods=["GET"])
+    def getProfileList(self):
+        data_folder = self.get_plugin_data_folder()
+        profile_folder = data_folder + '/profiles'
+        
+        _,_,fileList = os.walk(profile_folder).next()
+        
+        returnDict = {}
+        for pFile in fileList:
+            with open(profile_folder +'/'+ pFile, 'r+b') as f:
+                profile = eval(f.read())['profile']
+                returnDict[profile['id']] = profile
+                
+        return flask.jsonify(profiles=returnDict)
+    
     @octoprint.plugin.BlueprintPlugin.route("/install", methods=["POST"])
     @octoprint.server.util.flask.restricted_access
     @octoprint.server.admin_permission.require(403)
@@ -123,10 +138,77 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         self.execute(installCommand, stdin=PIPE, pswd='ubuntu')
                     
         return flask.make_response("Ok.", 200)
+    
+    @octoprint.plugin.BlueprintPlugin.route("/firmwareprofiles", methods=["POST"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def addNewProfile(self):
+        data_folder = self.get_plugin_data_folder()
+        profile_folder = data_folder + '/profiles'
+        
+        if not os.path.isdir(profile_folder):
+            os.mkdir(profile_folder)
             
-
-
-
+        profile_id = flask.request.json['profile']['id']
+        
+        profile_file = open(profile_folder + '/' + profile_id, 'w+b')
+        
+        profile_file.write(str(flask.request.json))
+        profile_file.flush()
+        profile_file.close()
+        
+        
+        
+        print '****************Output from addNewProfile:*************************'
+        print flask.request.json
+        for i in flask.request.json['profile']:
+            print i
+        print type(flask.request.json)
+       
+       
+        return flask.make_response("", 204)            
+    
+    @octoprint.plugin.BlueprintPlugin.route("/firmwareprofiles/<string:identifier>", methods=["DELETE"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def deleteProfile(self, identifier):
+        data_folder = self.get_plugin_data_folder()
+        file_path = data_folder + '/profiles/' + identifier
+           
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+                 
+        return flask.make_response("", 204)
+    
+    @octoprint.plugin.BlueprintPlugin.route("/firmwareprofiles/<string:identifier>", methods=["PATCH"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def updateProfile(self, identifier):
+        data_folder = self.get_plugin_data_folder()
+        profile_folder = data_folder + '/profiles'
+        
+        if not os.path.isdir(profile_folder):
+            os.mkdir(profile_folder)
+            
+        profile_id = flask.request.json['profile']['id']
+        
+        profile_file = open(profile_folder + '/' + profile_id, 'w+b')
+        
+        profile_file.write(str(flask.request.json))
+        profile_file.flush()
+        profile_file.close()
+        
+        
+        
+        print '****************Output from addNewProfile:*************************'
+        print flask.request.json
+        for i in flask.request.json['profile']:
+            print i
+        print type(flask.request.json)
+       
+       
+        return flask.make_response("", 204)
+            
 
     def execute(self, args, **kwargs):
         

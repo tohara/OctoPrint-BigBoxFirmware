@@ -51,12 +51,14 @@ $(function() {
         self.editorIdentifier = ko.observable();
         self.editorIdentifierPlaceholder = ko.observable();
         self.editorInfo = ko.observable();
+        self.editorDefine = ko.observableArray(undefined);
 
         self._cleanProfile = function() {
             return {
                 id: "",
                 name: "",
-                info: ""
+                info: "",
+                define: []
             }
         };
         
@@ -81,16 +83,16 @@ $(function() {
         
         self.currentProfileData = ko.observable(ko.mapping.fromJS(self._cleanProfile()));
         
-        var items = []
-        items.push({id: 'test123', name: 'Tom sin firmware', info: 'bare tull'})
-        items.push({id: 'test124', name: 'Tom sin firmware', info: 'bare tull'})
-        items.push({id: 'test125', name: 'Tom sin firmware', info: 'bare tull'})
-        items.push({id: 'test126', name: 'Tom sin firmware', info: 'bare tull'})
-        items.push({id: 'test127', name: 'Tom sin firmware', info: 'bare tull'})
-        items.push({id: 'test128', name: 'Tom sin firmware', info: 'bare tull'})
-
-        
-        self.profiles.updateItems(items);
+//        var items = []
+//        items.push({id: 'test111', name: 'Tom sin firmware111', info: 'bare tull'})
+//        items.push({id: 'test124', name: 'Tom sin firmware', info: 'bare tull'})
+//        items.push({id: 'test125', name: 'Tom sin firmware', info: 'bare tull'})
+//        items.push({id: 'test126', name: 'Tom sin firmware', info: 'bare tull'})
+//        items.push({id: 'test127', name: 'Tom sin firmware', info: 'bare tull'})
+//        items.push({id: 'test128', name: 'Tom sin firmware', info: 'bare tull', define: {}})
+//
+//        
+//        self.profiles.updateItems(items);
         
         self.editorNameInvalid = ko.pureComputed(function() {
             return !self.editorName();
@@ -105,7 +107,7 @@ $(function() {
             }
 
             var validCharacters = (data && (data == self._sanitize(data)));
-
+            
             var existingProfile = self.profiles.getItem(function(item) {return item.id == data});
             return !data || !validCharacters || (self.editorNew() && existingProfile != undefined);
         });
@@ -131,6 +133,7 @@ $(function() {
         self.editorName.subscribe(function() {
             self.editorIdentifierPlaceholder(self._sanitize(self.editorName()).toLowerCase());
         });
+        
         
         self.addProfile = function(callback) {
             var profile = self._editorData();
@@ -204,24 +207,59 @@ $(function() {
         };
         
         self.requestData = function() {
-        	
+        	items = [];
+        	$.ajax({
+                url: PLUGIN_BASEURL + "bigboxfirmware/firmwareprofiles",
+                type: "GET",
+                dataType: "json",
+                success: function(data) {
+                		_.each(data.profiles, function(profile) {                        
+                                               
+                        items.push(profile);
+                    });
+                		
+                    self.profiles.updateItems(items);
+                	
+                }
+            });       
+     
         }
         
-        self.showEditProfileDialog = function(data) {
-            var add = false;
+        self.duplicateProfile = function(data) {
+        	
+        	var dataCopy = jQuery.extend(true, {}, data);
+        	dataCopy.name = "copy of " + data.name;
+        	dataCopy.id = "";
+        	
+        	self.showEditProfileDialog(dataCopy, true);
+        };
+        
+        self.showEditProfileDialog = function(data, add=false) {
+            
             if (data == undefined) {
                 data = self._cleanProfile();
                 add = true;
             }
             
+            
+            
+            self.editorNew(add);
+            
             self.editorIdentifier(data.id);
             self.editorName(data.name);
             self.editorInfo(data.info);
+            self.editorDefine(data.define);
+           
+            
             
             
             var editDialog = $("#settings_plugin_bigboxfirmware_editDialog");
             var confirmButton = $("button.btn-confirm", editDialog);
             var dialogTitle = $("h3.modal-title", editDialog);
+            var defineButton = $("a.btn-primary", editDialog);
+            
+            defineButton.unbind("click");
+            defineButton.bind("click", self.addDefine);
 
             dialogTitle.text(add ? gettext("Add Firmware Profile") : _.sprintf(gettext("Edit Firmware Profile \"%(name)s\""), {name: data.name}));
             confirmButton.unbind("click");
@@ -255,10 +293,22 @@ $(function() {
                 id: identifier,
                 name: self.editorName(),
                 info: self.editorInfo(),
+                define : self.editorDefine()
                 
             }
 
             return profile;
+        };
+        
+        self.addDefine = function() {
+        	
+            self.editorDefine.push({identifier: "identifier", enabled: false, value: ""});
+    
+           
+        };
+
+        self.removeDefine= function(profile) {
+            self.editorDefine.remove(profile);
         };
         
         self._sanitize = function(name) {
@@ -269,6 +319,7 @@ $(function() {
         self.onStartup = function() {
             self.workingDialog = $("#settings_plugin_bigboxfirmware_workingdialog");
             self.workingOutput = $("#settings_plugin_bigboxfirmware_workingdialog_output");
+            self.requestData();
            
         };
         
@@ -373,7 +424,7 @@ $(function() {
                 self._scrollWorkingOutputToEnd();
             }
             
-            console.log(data);
+           
         };
         
         self.checkInstalledDep = function() {
@@ -391,12 +442,9 @@ $(function() {
                 	
                 	if (result.responseJSON.isInstalled) {
                 		self.depInstalled(true);
-                		console.log("FRom true: dep installed set to:" + self.depInstalled() );
                 		
-                	} else {
-                		console.log("FRom flase: dep installed set to:" + self.depInstalled() );
                 		
-                	}
+                	} 
                 	
                 }
             });

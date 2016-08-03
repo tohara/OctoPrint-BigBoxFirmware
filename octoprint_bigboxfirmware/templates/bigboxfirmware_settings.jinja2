@@ -14,7 +14,11 @@
         <td class="settings_plugin_bigboxfirmware_profiles_name"></span> <span data-bind="text: name"></span></td>
         <td class="settings_plugin_bigboxfirmware_profiles_info" data-bind="text: info"></td>
         <td class="settings_plugin_bigboxfirmware_profiles_action">
-          <a href="#" class="icon-star" title="Flash Firmware" data-bind="css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()"></a>&nbsp;|&nbsp;<a href="#" class="icon-pencil" title="Edit Profile" data-bind="click: function() { $root.showEditProfileDialog($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()"></a>&nbsp;|&nbsp;<a href="#" class="icon-trash" title="Delete Profile" data-bind="click: function() { $root.removeProfile($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()"></a>
+          <a href="#" class="icon-download" title="Flash Firmware" data-bind="css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()">
+          </a>&nbsp;|&nbsp;<a href="#" class="icon-copy" title="Duplicate Profile" data-bind="click: function() { $root.duplicateProfile($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()">
+          </a>&nbsp;|&nbsp;<a href="#" class="icon-pencil" title="Edit Profile" data-bind="click: function() { $root.showEditProfileDialog($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()">
+          </a>&nbsp;|&nbsp;<a href="#" class="icon-trash" title="Delete Profile" data-bind="click: function() { $root.removeProfile($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()">
+          </a>
         </td>
     </tr>
     </tbody>
@@ -62,6 +66,35 @@
                     <input type="text" data-bind="value: editorInfo">
                 </div>
             </div>
+            
+        </form>    
+		<form class="form-horizontal">
+           
+            <div data-bind="foreach: editorDefine">
+		        <div class="row-fluid" style="margin-bottom: 5px">
+		            <div class="span4">
+		                <input type="text" class="span12 text-right" data-bind="value: identifier">
+		            </div>
+		            <div class="input-append span3">
+		                <input type="text" class="input-mini text-right" data-bind="value: enabled">
+		                
+		            </div>
+		            <div class="input-append span3">
+		                <input type="text" class="input-mini text-right" data-bind="value: value">
+		                
+		            </div>
+		            <div class="span2">
+		                <a title="Remove Define" class="btn btn-danger" data-bind="click: $parent.removeDefine"><i class="icon-trash"></i></a>
+		            </div>
+		        </div>
+		    </div>
+		    <div class="row-fluid">
+		        <div class="offset10 span2">
+		            <a title="Add Define" class="btn btn-primary" data-bind="click: $root.addDefine"><i class="icon-plus"></i></a>
+		        </div>
+		    </div>
+    
+    
        
         </form>
     </div>
