@@ -1,8 +1,151 @@
+<h3>BigBox Firmware Flasher</h3>
+
+
+<table class="table table-striped table-hover table-condensed table-hover" id="settings_bigboxfirmware_profiles">
+    <thead>
+    <tr>
+        <th class="settings_plugin_bigboxfirmware_profiles_name">Name</th>
+        <th class="settings_plugin_bigboxfirmware_profiles_info">Info</th>
+        <th class="settings_plugin_bigboxfirmware_profiles_action">Action</th>
+    </tr>
+    </thead>
+    <tbody data-bind="foreach: profiles.paginatedItems">
+    <tr data-bind="attr: {title: name}">
+        <td class="settings_plugin_bigboxfirmware_profiles_name"></span> <span data-bind="text: name"></span></td>
+        <td class="settings_plugin_bigboxfirmware_profiles_info" data-bind="text: info"></td>
+        <td class="settings_plugin_bigboxfirmware_profiles_action">
+          <a href="#" class="icon-star" title="Flash Firmware" data-bind="css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()"></a>&nbsp;|&nbsp;<a href="#" class="icon-pencil" title="Edit Profile" data-bind="click: function() { $root.showEditProfileDialog($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()"></a>&nbsp;|&nbsp;<a href="#" class="icon-trash" title="Delete Profile" data-bind="click: function() { $root.removeProfile($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()"></a>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="pagination pagination-mini pagination-centered">
+    <ul>
+        <li data-bind="css: {disabled: profiles.currentPage() === 0}"><a href="#" data-bind="click: profiles.prevPage">«</a></li>
+    </ul>
+    <ul data-bind="foreach: profiles.pages">
+        <li data-bind="css: { active: $data.number === $root.profiles.currentPage(), disabled: $data.number === -1 }"><a href="#" data-bind="text: $data.text, click: function() { $root.profiles.changePage($data.number); }"></a></li>
+    </ul>
+    <ul>
+        <li data-bind="css: {disabled: profiles.currentPage() === profiles.lastPage()}"><a href="#" data-bind="click: profiles.nextPage">»</a></li>
+    </ul>
+</div>
+
+<button class="btn pull-right" data-bind="click: function() { $root.showEditProfileDialog(); }">Add Profile...</button>
+
+
+<div id="settings_plugin_bigboxfirmware_editDialog" class="modal hide fade">
+    <div class="modal-header">
+        <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
+        <h3 class="modal-title"></h3>
+    </div>
+    <div class="modal-body">
+        <form class="form-horizontal">
+            <div class="control-group" data-bind="css: {error: editorNameInvalid()}">
+                <label class="control-label">Name</label>
+                <div class="controls">
+                    <input type="text" data-bind="value: editorName, valueUpdate: 'afterkeydown'">
+                    <span data-bind="visible: editorNameInvalid()"><br><span class="help-inline">Name must be set</span></span>
+                </div>
+            </div>
+            <div class="control-group" data-bind="css: {error: editorIdentifierInvalid()}">
+                <label class="control-label">Identifier</label>
+                <div class="controls">
+                    <input type="text" data-bind="value: editorIdentifier, valueUpdate: 'afterkeydown', enable: editorNew, css: {disabled: !editorNew()}, attr: {placeholder: editorIdentifierPlaceholder}">
+                    <span data-bind="visible: editorIdentifierInvalid()"><br><span class="help-inline" data-bind="text: editorIdentifierInvalidText()"></span></span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Info</label>
+                <div class="controls">
+                    <input type="text" data-bind="value: editorInfo">
+                </div>
+            </div>
+       
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Abort</button>
+        <button class="btn btn-primary btn-confirm" data-bind="enabled: enableEditorSubmitButton, css: {disabled: !enableEditorSubmitButton()}"><i class="icon-spinner icon-spin" data-bind="visible: requestInProgress()"></i>Confirm</button>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <div id="settings_plugin_bigboxfirmware">
+
+	<div id="settings_plugin_bigboxfirmware_dep_warning" style="background-color: red" data-bind="visible: !depInstalled()">
+		<h3>Missing dependencies.</h3>
+		<p> Dependencies avr-libc, make and avrdude is not installed.</p>
+	    <p> Install now?</p>
+		<button class="btn" data-bind="click: installDep">OK</button>
+		
+	</div>
 
   
 
-    <h3>BigBox</h3>
+    <h2 data-bind="text: myTitle"></h2>
+
 
     <button class="btn btn-primary btn-block" data-bind="click: makeMarlin, enable: !isBusy()">Test</button>
+
+
+    <h4>{{ _('Printer Settings') }}</h4>
+
+	<div class="control-group" title="{{ _('Select the serial port where your printer is connected') }}">
+	    <label class="control-label">{{ _('Serial Port') }}</label>
+	    <div class="controls">
+	        <select data-bind="options: connection.portOptions, value: connection.selectedPort, css: {disabled: !connection.isErrorOrClosed() || isBusy()}, enable: connection.isErrorOrClosed() && loginState.isUser() && !isBusy()"></select>
+	    </div>
+	</div>
+
+
+
+
+
+
+
+	<div id="settings_plugin_bigboxfirmware_workingdialog" class="modal hide fade">
+	    <div class="modal-header">
+	        <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
+	        <h3 data-bind="text: workingTitle"></h3>
+	    </div>
+	    <div class="modal-body">
+	        <pre id="settings_plugin_bigboxfirmware_workingdialog_output" class="terminal pre-scrollable" style="height: 400px" data-bind="foreach: loglines"><span data-bind="text: line, css: {stdout: stream == 'stdout', stderr: stream == 'stderr', call: stream == 'call', message: stream == 'message'}"></span><br></pre>
+	    </div>
+	    <div class="modal-footer">
+	        <button class="btn" data-dismiss="modal" data-bind="enable: !$root.working()" aria-hidden="true">{{ _('Close') }}</button>
+	    </div>
+	</div>
+	
+
+
 </div>

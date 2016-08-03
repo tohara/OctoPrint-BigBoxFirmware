@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import absolute_import
 
+
 import flask
 import json
 import os
@@ -16,14 +17,9 @@ import octoprint.plugin
 import octoprint.server.util.flask
 from octoprint.server import admin_permission
 from octoprint.events import Events
-
-### (Don't forget to remove me)
-# This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
-# as well as the plugin mixins it's subclassing from. This is really just a basic skeleton to get you started,
-# defining your plugin as a template plugin, settings and asset plugin. Feel free to add or remove mixins
-# as necessary.
-#
-# Take a look at the documentation on what other plugin mixins are available.
+from subprocess import call, Popen, PIPE
+import threading
+import apt
 
 
 class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
@@ -33,41 +29,149 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                            octoprint.plugin.EventHandlerPlugin):
     
     
-    @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
-    def make_marlin(self):
-        return flask.make_response("Ok.", 200)
-
-
-
-#     @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
-#     @octoprint.server.util.flask.restricted_access
-#     @octoprint.server.admin_permission.require(403)
-#     def make_marlin(self):
-#         return flask.make_response("Ok.", 200)
-        
-#         if self._printer.is_printing():
-#             self._send_status(status_type="flashing_status", status_value="error", status_description="Printer is busy")
-#             self._logger.debug(u"Printer is busy")
-#             return flask.make_response("Error.", 500)
-# 
-#         if not self._check_avrdude():
-#             self._send_status(status_type="flashing_status", status_value="error", status_description="Avrdude error")
-#             return flask.make_response("Error.", 500)
-# 
-# 
-#         return flask.make_response("Ok.", 200)
     
+    @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def make_marlin(self):
+        
+        avrdude_path = '/usr/bin/avrdude'
+        selected_port = flask.request.json['selected_port']
+        data_folder = self.get_plugin_data_folder()
+        build_folder = data_folder + '/tmp'
+        hex_path = build_folder + '/Marlin.hex'
+        
+        
+        if self._printer.is_printing():
+            self._plugin_manager.send_plugin_message(self._identifier, 
+                                                     dict(type="logline",
+                                                          line='Printer is busy! Aborted Flashing!',
+                                                          stream='stderr'))
+            
+            return flask.make_response("Error.", 500)
+        
+        output = self.execute(['make', 'BUILD_DIR=' + build_folder], cwd=self._basefolder + '/marlin/Marlin')
+
+            
+        hexFileExist = os.path.exists(hex_path)
+        
+        if not hexFileExist:
+            self._plugin_manager.send_plugin_message(self._identifier, 
+                                                     dict(type="logline",
+                                                          line='Something went wrong. Hex file does not exist!',
+                                                          stream='stderr'))
+            return flask.make_response("Error", 500)
+        
+        else:
+            self._plugin_manager.send_plugin_message(self._identifier,
+                                                     dict(type="logline",
+                                                          line='Marlin.hex found! Proceeding to flash with avrdude.',
+                                                          stream='message'))
+        
+              
+        
+        avrdude_command = [avrdude_path, "-v", "-p", "m2560", "-c", "wiring", "-P", selected_port, "-U", "flash:w:" + hex_path + ":i", "-D"]
+        
+        self._plugin_manager.send_plugin_message(self._identifier,
+                                                     dict(type="logline",
+                                                          line='Command: ' + ' '.join(avrdude_command),
+                                                          stream='stdout'))
+        
+        output = self.execute(avrdude_command, cwd=os.path.dirname(avrdude_path))
+        
+        self._plugin_manager.send_plugin_message(self._identifier,
+                                                     dict(type="logline",
+                                                          line='Cleaning up build files....',
+                                                          stream='message'))
+        
+        output = self.execute(['make', 'clean', 'BUILD_DIR=' + build_folder], cwd=self._basefolder + '/marlin/Marlin')
+        
+        
+
+ 
+        return flask.make_response("Ok.", 200)
+    
+    depList = ['avr-libc', 'avrdude', 'make']
+
+    @octoprint.plugin.BlueprintPlugin.route("/check_dep", methods=["POST"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def check_dep(self):
+        cache = apt.Cache()
+        
+        isInstalled = True
+        
+        for packageName in self.depList:
+            try:
+                isInstalled = isInstalled and cache[packageName].is_installed
+            except:
+                isInstalled = False
+                    
+        return flask.jsonify(isInstalled=isInstalled)
+    
+    @octoprint.plugin.BlueprintPlugin.route("/install", methods=["POST"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def install_dep(self):
+        
+        installCommand = ['sudo', '-S', 'apt-get', 'install', '-y'] + self.depList
+        self._plugin_manager.send_plugin_message(self._identifier,
+                                                     dict(type="logline",
+                                                          line='Command: ' + ' '.join(installCommand),
+                                                          stream='stdout'))
+        
+        self.execute(installCommand, stdin=PIPE, pswd='ubuntu')
+                    
+        return flask.make_response("Ok.", 200)
+            
+
+
+
+
+    def execute(self, args, **kwargs):
+        
+        pswd = kwargs.pop('pswd', None)
+        res = Popen(args, stdout=PIPE, stderr=PIPE,  **kwargs)
+        
+        if pswd:
+            res.stdin.write(pswd + '\n')
+            
+        linesStdout = iter(res.stdout.readline, "")
+        linesStderr = iter(res.stderr.readline, "")
+        
+        
+        def stdoutListener():
+            for line in linesStdout:
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="logline", line=line.replace('\n', ''), stream='stdout'))
+                
+        def stderrListener():
+            for line in linesStderr:
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="logline", line=line.replace('\n', ''), stream='stderr'))
+            
+        
+        stdoutThread = threading.Thread(target=stdoutListener)
+        stdoutThread.daemon = False
+        stdoutThread.start()
+        
+        stderrThread = threading.Thread(target=stderrListener)
+        stderrThread.daemon = False
+        stderrThread.start()
+            
+        stderrThread.join()
+        stdoutThread.join()
+        
+                     
     
 	##~~ SettingsPlugin mixin
 
-	def get_settings_defaults(self):
-		return dict(
+    def get_settings_defaults(self):
+        return dict(
 			# put your plugin's default settings here
 		)
 
 	##~~ AssetPlugin mixin
-
-	def get_assets(self):
+    
+    def get_assets(self):
 		# Define your plugin's asset files to automatically include in the
 		# core UI here.
 		return dict(
@@ -77,13 +181,13 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 		)
 
 	##~~ Softwareupdate hook
-
-	def get_update_information(self):
+    
+    def get_update_information(self):
 		# Define the configuration for your plugin to use with the Software Update
 		# Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
 		# for details.
 		return dict(
-			pidtune=dict(
+			bigboxfirmware=dict(
 				displayName="BigBox Firmware Flasher",
 				displayVersion=self._plugin_version,
 
@@ -100,6 +204,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 		)
         
     #~~ Extra methods
+    def _send_status(self, status_type, status_value, status_description=""):
+        self._plugin_manager.send_plugin_message(self._identifier, dict(type="status", status_type=status_type, status_value=status_value, status_description=status_description))
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py

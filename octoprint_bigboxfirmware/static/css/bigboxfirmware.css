@@ -32,3 +32,52 @@
     border-bottom: 1px solid #E5E5E5;
     font-weight: 400;
 }
+
+
+#settings_plugin_bigboxfirmware_workingdialog_output .message {
+	font-weight:bold
+	}
+	
+#settings_plugin_bigboxfirmware_workingdialog_output .stdout {
+	color:#333
+	}
+	
+#settings_plugin_bigboxfirmware_workingdialog_output .stderr {
+	color:#900
+	}
+	
+#settings_plugin_bigboxfirmware_workingdialog_output .call {
+	color:#009
+	}
+
+
+table td.settings_plugin_bigboxfirmware__profiles_name, table th.settings_plugin_bigboxfirmware_profiles_name
+	{
+	text-overflow: ellipsis;
+	text-align: left
+}
+
+table td.settings_plugin_bigboxfirmware_profiles_info, table th.settings_plugin_bigboxfirmware_profiles_info
+	{
+	text-align: left;
+	width: 250px
+}
+
+table td.settings_plugin_bigboxfirmware_profiles_action, table th.settings_plugin_bigboxfirmware_profiles_action
+	{
+	width: 80px;
+	text-align: center;
+	white-space: nowrap
+}
+
+table td.settings_plugin_bigboxfirmware_profiles_action a, table th.settings_plugin_bigboxfirmware_profiles_action a
+	{
+	text-decoration: none;
+	color: #000
+}
+
+table td.settings_plugin_bigboxfirmware_profiles_action a.disabled, table th.settings_plugin_bigboxfirmware_profiles_action a.disabled
+	{
+	color: #ccc;
+	cursor: default
+}
