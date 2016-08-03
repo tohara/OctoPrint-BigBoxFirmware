@@ -5,12 +5,6 @@ from __future__ import absolute_import
 import flask
 import json
 import os
-import requests
-import tempfile
-import time
-import urllib
-import urllib2
-import urlparse
 
 import octoprint.plugin
 
@@ -81,7 +75,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                                                           line='Marlin.hex found! Proceeding to flash with avrdude.',
                                                           stream='message'))
         
-             
+        self._printer.disconnect()   
         
         avrdude_command = [avrdude_path, "-v", "-p", "m2560", "-c", "wiring", "-P", selected_port, "-U", "flash:w:" + hex_path + ":i", "-D"]
         
@@ -99,7 +93,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         output = self.execute(['make', 'clean', 'BUILD_DIR=' + build_folder], cwd=self._basefolder + '/marlin/Marlin')
         
-        
+        self._printer.connect(port=selected_port)
 
  
         return flask.make_response("Ok.", 200)
@@ -199,7 +193,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                                                           line='Command: ' + ' '.join(installCommand),
                                                           stream='stdout'))
         
-        self.execute(installCommand, stdin=PIPE, pswd='ubuntu')
+        self.execute(installCommand, stdin=PIPE, pswd='raspberry')
                     
         return flask.make_response("Ok.", 200)
     
