@@ -37,6 +37,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         avrdude_path = '/usr/bin/avrdude'
         selected_port = flask.request.json['selected_port']
+        profileId = flask.request.json['profileId']
         data_folder = self.get_plugin_data_folder()
         build_folder = data_folder + '/tmp'
         hex_path = build_folder + '/Marlin.hex'
@@ -49,6 +50,18 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                                                           stream='stderr'))
             
             return flask.make_response("Error.", 500)
+        
+        self._plugin_manager.send_plugin_message(self._identifier,
+                                                     dict(type="logline",
+                                                          line='Parsing configuration..........',
+                                                          stream='message'))
+        self.parseConfig(profileId)
+        
+        self._plugin_manager.send_plugin_message(self._identifier,
+                                                     dict(type="logline",
+                                                          line='Building Marlin................',
+                                                          stream='message'))
+        
         
         output = self.execute(['make', 'BUILD_DIR=' + build_folder], cwd=self._basefolder + '/marlin/Marlin')
 
@@ -68,7 +81,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                                                           line='Marlin.hex found! Proceeding to flash with avrdude.',
                                                           stream='message'))
         
-              
+             
         
         avrdude_command = [avrdude_path, "-v", "-p", "m2560", "-c", "wiring", "-P", selected_port, "-U", "flash:w:" + hex_path + ":i", "-D"]
         
@@ -90,6 +103,57 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 
  
         return flask.make_response("Ok.", 200)
+    
+    def parseConfig(self, profileId):
+        dataFolder = self.get_plugin_data_folder()
+        profilePath = dataFolder + '/profiles/' + profileId
+        templateFolder = self._basefolder + '/marlin/templates'
+        marlinFolder = self._basefolder + '/marlin/Marlin'
+        templates = ('Configuration.h', 'Configuration_adv.h')
+        
+        with open(profilePath, 'r+b') as f:
+                profile = eval(f.read())['profile']
+                
+        
+        def insertDefine(splittedLine, targFile, line):
+            
+            identifier = splittedLine.strip().split(' ')[1]
+            
+            for param in profile['define']:
+                if param['identifier'] == identifier:
+                    enabled = '' if param['enabled'] else '//'
+                    targFile.write(enabled + '#define ' + param['identifier'] + ' ' + param['value'] + ' //Modified by script\n')
+                    break
+            else:
+                targFile.write(line)
+                
+            
+            
+        
+        for template in templates:
+            tempFile = open(templateFolder + '/' + template, 'r')
+            targFile = open(marlinFolder + '/' + template, 'w')
+            
+            for line in tempFile.readlines():
+                
+                splitted = line.split('//', 2)
+                if splitted[0].strip()[:7] == '#define':
+                    insertDefine(splitted[0], targFile, line)
+                    continue
+                
+                elif len(splitted) >= 2:
+                    if splitted[1].strip()[:7] == '#define':
+                        insertDefine(splitted[1], targFile, line)
+                        continue
+                    
+                
+                targFile.write(line)
+            
+            tempFile.close()
+            targFile.flush()
+            targFile.close()
+            
+            
     
     depList = ['avr-libc', 'avrdude', 'make']
 
@@ -158,12 +222,12 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         profile_file.close()
         
         
-        
-        print '****************Output from addNewProfile:*************************'
-        print flask.request.json
-        for i in flask.request.json['profile']:
-            print i
-        print type(flask.request.json)
+#         
+#         print '****************Output from addNewProfile:*************************'
+#         print flask.request.json
+#         for i in flask.request.json['profile']:
+#             print i
+#         print type(flask.request.json)
        
        
         return flask.make_response("", 204)            
@@ -200,11 +264,11 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         
         
-        print '****************Output from addNewProfile:*************************'
-        print flask.request.json
-        for i in flask.request.json['profile']:
-            print i
-        print type(flask.request.json)
+#         print '****************Output from addNewProfile:*************************'
+#         print flask.request.json
+#         for i in flask.request.json['profile']:
+#             print i
+#         print type(flask.request.json)
        
        
         return flask.make_response("", 204)

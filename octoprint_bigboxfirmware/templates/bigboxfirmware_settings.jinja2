@@ -1,5 +1,11 @@
 <h3>BigBox Firmware Flasher</h3>
-
+<div id="settings_plugin_bigboxfirmware_dep_warning" style="background-color: red" data-bind="visible: !depInstalled()">
+	<h3>Missing dependencies.</h3>
+	<p> Dependencies avr-libc, make and avrdude is not installed.</p>
+    <p> Install now?</p>
+	<button class="btn" data-bind="click: installDep">OK</button>
+	
+</div>
 
 <table class="table table-striped table-hover table-condensed table-hover" id="settings_bigboxfirmware_profiles">
     <thead>
@@ -14,7 +20,7 @@
         <td class="settings_plugin_bigboxfirmware_profiles_name"></span> <span data-bind="text: name"></span></td>
         <td class="settings_plugin_bigboxfirmware_profiles_info" data-bind="text: info"></td>
         <td class="settings_plugin_bigboxfirmware_profiles_action">
-          <a href="#" class="icon-download" title="Flash Firmware" data-bind="css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()">
+          <a href="#" class="icon-download flash" title="Flash Firmware" data-bind="click: function() { $root.flashProfile($data); }, css: {disabled: $root.isBusy()}, enabled: !$root.isBusy()">
           </a>&nbsp;|&nbsp;<a href="#" class="icon-copy" title="Duplicate Profile" data-bind="click: function() { $root.duplicateProfile($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()">
           </a>&nbsp;|&nbsp;<a href="#" class="icon-pencil" title="Edit Profile" data-bind="click: function() { $root.showEditProfileDialog($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()">
           </a>&nbsp;|&nbsp;<a href="#" class="icon-trash" title="Delete Profile" data-bind="click: function() { $root.removeProfile($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()">
@@ -36,8 +42,9 @@
     </ul>
 </div>
 
+<div>
 <button class="btn pull-right" data-bind="click: function() { $root.showEditProfileDialog(); }">Add Profile...</button>
-
+</div>
 
 <div id="settings_plugin_bigboxfirmware_editDialog" class="modal hide fade">
     <div class="modal-header">
@@ -69,22 +76,28 @@
             
         </form>    
 		<form class="form-horizontal">
-           
+             <div class="row-fluid">
+             	<div class="span5"><h4>Define Identifier</h4></div>
+				
+				<div class="span3"><h4>Value</h4></div>
+				<div class="span2"><h4>Enabled</h4></div>
+    		</div>
             <div data-bind="foreach: editorDefine">
 		        <div class="row-fluid" style="margin-bottom: 5px">
-		            <div class="span4">
-		                <input type="text" class="span12 text-right" data-bind="value: identifier">
+		            <div class="span5">
+		                <input type="text" class="span12 text-left" data-bind="value: identifier">
 		            </div>
-		            <div class="input-append span3">
-		                <input type="text" class="input-mini text-right" data-bind="value: enabled">
+		            
+		            <div class="span4">
+		                <input type="text" class="span12 text-center" data-bind="value: value">
 		                
 		            </div>
-		            <div class="input-append span3">
-		                <input type="text" class="input-mini text-right" data-bind="value: value">
+		            <div class="input-append span1">
+		                <input type="checkbox" class="offset4" data-bind="checked: enabled">
 		                
 		            </div>
 		            <div class="span2">
-		                <a title="Remove Define" class="btn btn-danger" data-bind="click: $parent.removeDefine"><i class="icon-trash"></i></a>
+		                <a title="Remove Define" class="btn btn-danger" data-bind="click: $root.removeDefine"><i class="icon-trash"></i></a>
 		            </div>
 		        </div>
 		    </div>
@@ -109,76 +122,28 @@
 
 
 
+<h4>Printer Settings</h4>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div id="settings_plugin_bigboxfirmware">
-
-	<div id="settings_plugin_bigboxfirmware_dep_warning" style="background-color: red" data-bind="visible: !depInstalled()">
-		<h3>Missing dependencies.</h3>
-		<p> Dependencies avr-libc, make and avrdude is not installed.</p>
-	    <p> Install now?</p>
-		<button class="btn" data-bind="click: installDep">OK</button>
-		
-	</div>
-
-  
-
-    <h2 data-bind="text: myTitle"></h2>
-
-
-    <button class="btn btn-primary btn-block" data-bind="click: makeMarlin, enable: !isBusy()">Test</button>
-
-
-    <h4>{{ _('Printer Settings') }}</h4>
-
-	<div class="control-group" title="{{ _('Select the serial port where your printer is connected') }}">
-	    <label class="control-label">{{ _('Serial Port') }}</label>
-	    <div class="controls">
-	        <select data-bind="options: connection.portOptions, value: connection.selectedPort, css: {disabled: !connection.isErrorOrClosed() || isBusy()}, enable: connection.isErrorOrClosed() && loginState.isUser() && !isBusy()"></select>
-	    </div>
-	</div>
-
-
-
-
-
-
-
-	<div id="settings_plugin_bigboxfirmware_workingdialog" class="modal hide fade">
-	    <div class="modal-header">
-	        <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
-	        <h3 data-bind="text: workingTitle"></h3>
-	    </div>
-	    <div class="modal-body">
-	        <pre id="settings_plugin_bigboxfirmware_workingdialog_output" class="terminal pre-scrollable" style="height: 400px" data-bind="foreach: loglines"><span data-bind="text: line, css: {stdout: stream == 'stdout', stderr: stream == 'stderr', call: stream == 'call', message: stream == 'message'}"></span><br></pre>
-	    </div>
-	    <div class="modal-footer">
-	        <button class="btn" data-dismiss="modal" data-bind="enable: !$root.working()" aria-hidden="true">{{ _('Close') }}</button>
-	    </div>
-	</div>
-	
-
-
+<div class="control-group" title="Select the serial port where your printer is connected">
+    <label class="control-label">Serial Port</label>
+    <div class="controls">
+        <select data-bind="options: connection.portOptions, value: connection.selectedPort, css: {disabled: !connection.isErrorOrClosed() || isBusy()}, enable: connection.isErrorOrClosed() && loginState.isUser() && !isBusy()"></select>
+    </div>
 </div>
+
+
+
+
+<div id="settings_plugin_bigboxfirmware_workingdialog" class="modal hide fade">
+    <div class="modal-header">
+        <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
+        <h3 data-bind="text: workingTitle"></h3>
+    </div>
+    <div class="modal-body">
+        <pre id="settings_plugin_bigboxfirmware_workingdialog_output" class="terminal pre-scrollable" style="height: 400px" data-bind="foreach: loglines"><span data-bind="text: line, css: {stdout: stream == 'stdout', stderr: stream == 'stderr', call: stream == 'call', message: stream == 'message'}"></span><br></pre>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" data-bind="enable: !$root.working()" aria-hidden="true">{{ _('Close') }}</button>
+    </div>
+</div>
+	

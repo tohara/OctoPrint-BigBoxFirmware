@@ -256,10 +256,7 @@ $(function() {
             var editDialog = $("#settings_plugin_bigboxfirmware_editDialog");
             var confirmButton = $("button.btn-confirm", editDialog);
             var dialogTitle = $("h3.modal-title", editDialog);
-            var defineButton = $("a.btn-primary", editDialog);
-            
-            defineButton.unbind("click");
-            defineButton.bind("click", self.addDefine);
+          
 
             dialogTitle.text(add ? gettext("Add Firmware Profile") : _.sprintf(gettext("Edit Firmware Profile \"%(name)s\""), {name: data.name}));
             confirmButton.unbind("click");
@@ -321,6 +318,7 @@ $(function() {
             self.workingOutput = $("#settings_plugin_bigboxfirmware_workingdialog_output");
             self.requestData();
            
+           
         };
         
         self.testNotify = function() {
@@ -363,11 +361,12 @@ $(function() {
         self._scrollWorkingOutputToEnd = function() {
             self.workingOutput.scrollTop(self.workingOutput[0].scrollHeight - self.workingOutput.height());
         };
-        
-        self.makeMarlin = function() {
+       
+         
+        self.flashProfile = function(profile) {
         	//console.log('makeMarlin');
         	self.isBusy(true);
-        	self._markWorking('Flash Printer', 'Starting compile......');
+        	self._markWorking('Flash Printer', 'Starting......');
      
 
             $.ajax({
@@ -375,7 +374,8 @@ $(function() {
                 type: "POST",
                 dataType: "json",
                 data: JSON.stringify({
-                    selected_port: self.connection.selectedPort()
+                    selected_port: self.connection.selectedPort(),
+                    profileId: profile.id
                 }),
                 contentType: "application/json; charset=UTF-8",
                 complete: function() {
