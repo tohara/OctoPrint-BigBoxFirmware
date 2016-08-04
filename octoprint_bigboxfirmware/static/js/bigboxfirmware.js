@@ -316,6 +316,9 @@ $(function() {
         self.onStartup = function() {
             self.workingDialog = $("#settings_plugin_bigboxfirmware_workingdialog");
             self.workingOutput = $("#settings_plugin_bigboxfirmware_workingdialog_output");
+            if (!self.depInstalled()) {
+        		self.checkInstalledDep();
+        	}
             self.requestData();
            
            
@@ -364,6 +367,7 @@ $(function() {
        
          
         self.flashProfile = function(profile) {
+        	if (!self.depInstalled()) { return;}
         	//console.log('makeMarlin');
         	self.isBusy(true);
         	self._markWorking('Flash Printer', 'Starting......');
@@ -450,12 +454,12 @@ $(function() {
             });
         };
         
-        self.onSettingsShown = function() {
-//        	console.log("Startup completedasdfasfd");
-        	if (!self.depInstalled()) {
-        		self.checkInstalledDep();
-        	}	
-        }
+//        self.onSettingsShown = function() {
+////        	console.log("Startup completedasdfasfd");
+//        	if (!self.depInstalled()) {
+//        		self.checkInstalledDep();
+//        	}	
+//        }
         
         
 

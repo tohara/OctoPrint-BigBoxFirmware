@@ -1,5 +1,5 @@
 <h3>BigBox Firmware Flasher</h3>
-<div id="settings_plugin_bigboxfirmware_dep_warning" style="background-color: red" data-bind="visible: !depInstalled()">
+<div id="settings_plugin_bigboxfirmware_dep_warning" data-bind="visible: !depInstalled()">
 	<h3>Missing dependencies.</h3>
 	<p> Dependencies avr-libc, make and avrdude is not installed.</p>
     <p> Install now?</p>
@@ -20,10 +20,10 @@
         <td class="settings_plugin_bigboxfirmware_profiles_name"></span> <span data-bind="text: name"></span></td>
         <td class="settings_plugin_bigboxfirmware_profiles_info" data-bind="text: info"></td>
         <td class="settings_plugin_bigboxfirmware_profiles_action">
-          <a href="#" class="icon-download flash" title="Flash Firmware" data-bind="click: function() { $root.flashProfile($data); }, css: {disabled: $root.isBusy()}, enabled: !$root.isBusy()">
-          </a>&nbsp;|&nbsp;<a href="#" class="icon-copy" title="Duplicate Profile" data-bind="click: function() { $root.duplicateProfile($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()">
-          </a>&nbsp;|&nbsp;<a href="#" class="icon-pencil" title="Edit Profile" data-bind="click: function() { $root.showEditProfileDialog($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()">
-          </a>&nbsp;|&nbsp;<a href="#" class="icon-trash" title="Delete Profile" data-bind="click: function() { $root.removeProfile($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress()">
+          <a href="#" class="icon-download flash" title="Flash Firmware" data-bind="click: function() { $root.flashProfile($data); }, css: {disabled: $root.isBusy() || !$root.depInstalled()}, enabled: !$root.isBusy && $root.depInstalled">
+          </a>&nbsp;|&nbsp;<a href="#" class="icon-copy" title="Duplicate Profile" data-bind="click: function() { $root.duplicateProfile($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress">
+          </a>&nbsp;|&nbsp;<a href="#" class="icon-pencil" title="Edit Profile" data-bind="click: function() { $root.showEditProfileDialog($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress">
+          </a>&nbsp;|&nbsp;<a href="#" class="icon-trash" title="Delete Profile" data-bind="click: function() { $root.removeProfile($data); }, css: {disabled: $root.requestInProgress()}, enabled: !$root.requestInProgress">
           </a>
         </td>
     </tr>
@@ -42,7 +42,7 @@
     </ul>
 </div>
 
-<div>
+<div class="row-fluid">
 <button class="btn pull-right" data-bind="click: function() { $root.showEditProfileDialog(); }">Add Profile...</button>
 </div>
 
@@ -79,8 +79,8 @@
              <div class="row-fluid">
              	<div class="span5"><h4>Define Identifier</h4></div>
 				
-				<div class="span3"><h4>Value</h4></div>
-				<div class="span2"><h4>Enabled</h4></div>
+				<div class="span5"><h4>Value</h4></div>
+				<div class="span1"><h4>Enabled</h4></div>
     		</div>
             <div data-bind="foreach: editorDefine">
 		        <div class="row-fluid" style="margin-bottom: 5px">
@@ -88,7 +88,7 @@
 		                <input type="text" class="span12 text-left" data-bind="value: identifier">
 		            </div>
 		            
-		            <div class="span4">
+		            <div class="span5">
 		                <input type="text" class="span12 text-center" data-bind="value: value">
 		                
 		            </div>
@@ -96,13 +96,13 @@
 		                <input type="checkbox" class="offset4" data-bind="checked: enabled">
 		                
 		            </div>
-		            <div class="span2">
+		            <div class="span1">
 		                <a title="Remove Define" class="btn btn-danger" data-bind="click: $root.removeDefine"><i class="icon-trash"></i></a>
 		            </div>
 		        </div>
 		    </div>
 		    <div class="row-fluid">
-		        <div class="offset10 span2">
+		        <div class="offset11 span1">
 		            <a title="Add Define" class="btn btn-primary" data-bind="click: $root.addDefine"><i class="icon-plus"></i></a>
 		        </div>
 		    </div>
@@ -121,16 +121,16 @@
 
 
 
-
-<h4>Printer Settings</h4>
-
-<div class="control-group" title="Select the serial port where your printer is connected">
-    <label class="control-label">Serial Port</label>
-    <div class="controls">
-        <select data-bind="options: connection.portOptions, value: connection.selectedPort, css: {disabled: !connection.isErrorOrClosed() || isBusy()}, enable: connection.isErrorOrClosed() && loginState.isUser() && !isBusy()"></select>
-    </div>
+<div id="settings_plugin_bigboxfirmware_printer_settings">
+	<h4>Printer Settings</h4>
+	
+	<div class="control-group" title="Select the serial port where your printer is connected">
+	    <label class="control-label">Serial Port</label>
+	    <div class="controls">
+	        <select data-bind="options: connection.portOptions, value: connection.selectedPort, css: {disabled: !connection.isErrorOrClosed() || isBusy()}, enable: connection.isErrorOrClosed() && loginState.isUser() && !isBusy()"></select>
+	    </div>
+	</div>
 </div>
-
 
 
 
@@ -143,7 +143,8 @@
         <pre id="settings_plugin_bigboxfirmware_workingdialog_output" class="terminal pre-scrollable" style="height: 400px" data-bind="foreach: loglines"><span data-bind="text: line, css: {stdout: stream == 'stdout', stderr: stream == 'stderr', call: stream == 'call', message: stream == 'message'}"></span><br></pre>
     </div>
     <div class="modal-footer">
-        <button class="btn" data-dismiss="modal" data-bind="enable: !$root.working()" aria-hidden="true">{{ _('Close') }}</button>
+        <button class="btn" data-dismiss="modal" data-bind="enable: !$root.working()" aria-hidden="true">Close</button>
     </div>
 </div>
+
 	

@@ -50,7 +50,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                                                           line='Parsing configuration..........',
                                                           stream='message'))
         self.parseConfig(profileId)
-        
+        return flask.make_response("Ok.", 200)
         self._plugin_manager.send_plugin_message(self._identifier,
                                                      dict(type="logline",
                                                           line='Building Marlin................',
@@ -104,6 +104,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         templateFolder = self._basefolder + '/marlin/templates'
         marlinFolder = self._basefolder + '/marlin/Marlin'
         templates = ('Configuration.h', 'Configuration_adv.h')
+        processedIds = []
         
         with open(profilePath, 'r+b') as f:
                 profile = eval(f.read())['profile']
@@ -111,12 +112,17 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         def insertDefine(splittedLine, targFile, line):
             
-            identifier = splittedLine.strip().split(' ')[1]
+            identifier = splittedLine.strip().split()[1]
+            offset = line.replace('//', '').find('#define') * ' '
+            
+            if identifier in processedIds:
+                return
             
             for param in profile['define']:
                 if param['identifier'] == identifier:
                     enabled = '' if param['enabled'] else '//'
-                    targFile.write(enabled + '#define ' + param['identifier'] + ' ' + param['value'] + ' //Modified by script\n')
+                    targFile.write(enabled + offset + '#define ' + param['identifier'] + ' ' + param['value'] + ' //Modified by BigBoxFirmware Plugin\n')
+                    processedIds.append(param['identifier'])
                     break
             else:
                 targFile.write(line)
@@ -131,6 +137,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             for line in tempFile.readlines():
                 
                 splitted = line.split('//', 2)
+                
                 if splitted[0].strip()[:7] == '#define':
                     insertDefine(splitted[0], targFile, line)
                     continue

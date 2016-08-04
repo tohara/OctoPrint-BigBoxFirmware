@@ -1,36 +1,27 @@
 /* TODO: Have your plugin's CSS files generated to here. */
 
 
-
-.pidtune-placeholder {
-	width: 100%;
-	height: 400px;
-	font-size: 14px;
-	line-height: 1.2em;
-}
-
-#tab_plugin_pidtune .pid-panel {
-	float: left;
-    margin-right: 50px;
+#settings_plugin_bigboxfirmware_dep_warning {
+	
+	border: 25px;
+    padding: 25px;
+    margin: 25px;
+	
+	border-width: 10px;
+	border-radius: 16px;
+	border-style: double;
+	border-color: red;
+	text-align: center;
+	font-size: 20px;
+	
 	
 }
-    
-#tab_plugin_pidtune select {
-	width: 100%;
-}  
-    
 
-#tab_plugin_pidtune h2 {   
-    display: block;
-    width: 100%;
-    padding: 0;
-    margin-bottom: 20px;
-    font-size: 16px;
-    line-height: 40px;
-    color: #333;
-    border: 0;
-    border-bottom: 1px solid #E5E5E5;
-    font-weight: 400;
+#settings_plugin_bigboxfirmware_printer_settings {
+
+
+	
+	
 }
 
 
@@ -50,6 +41,10 @@
 	color:#009
 	}
 
+#settings_plugin_bigboxfirmware_editDialog {
+	width: 800px;
+	left: 45%;
+}
 
 table td.settings_plugin_bigboxfirmware__profiles_name, table th.settings_plugin_bigboxfirmware_profiles_name
 	{
