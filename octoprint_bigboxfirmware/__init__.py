@@ -32,6 +32,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         avrdude_path = '/usr/bin/avrdude'
         selected_port = flask.request.json['selected_port']
         profileId = flask.request.json['profileId']
+        isDefault = flask.request.json['isDefault']
         data_folder = self.get_plugin_data_folder()
         build_folder = data_folder + '/tmp'
         hex_path = build_folder + '/Marlin.hex'
@@ -49,7 +50,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                                                      dict(type="logline",
                                                           line='Parsing configuration..........',
                                                           stream='message'))
-        self.parseConfig(profileId)
+        self.parseConfig(profileId, isDefault)
 #         return flask.make_response("Ok.", 200)
         self._plugin_manager.send_plugin_message(self._identifier,
                                                      dict(type="logline",
@@ -98,9 +99,9 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
  
         return flask.make_response("Ok.", 200)
     
-    def parseConfig(self, profileId):
+    def parseConfig(self, profileId, isDefault):
         dataFolder = self.get_plugin_data_folder()
-        profilePath = dataFolder + '/profiles/' + profileId
+        profilePath = self._basefolder + '/default_profiles/' + profileId if isDefault else dataFolder + '/profiles/' + profileId
         templateFolder = self._basefolder + '/marlin/templates'
         marlinFolder = self._basefolder + '/marlin/Marlin'
         templates = ('Configuration.h', 'Configuration_adv.h')
@@ -178,13 +179,22 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     def getProfileList(self):
         data_folder = self.get_plugin_data_folder()
         profile_folder = data_folder + '/profiles'
+        default_folder = self._basefolder + '/default_profiles'
         
         _,_,fileList = os.walk(profile_folder).next()
+        _,_,defaultFileList = os.walk(default_folder).next()
         
         returnDict = {}
         for pFile in fileList:
             with open(profile_folder +'/'+ pFile, 'r+b') as f:
                 profile = eval(f.read())['profile']
+                profile['isDefault'] = False
+                returnDict[profile['id']] = profile 
+                
+        for pFile in defaultFileList:
+            with open(default_folder +'/'+ pFile, 'r+b') as f:
+                profile = eval(f.read())['profile']
+                profile['isDefault'] = True
                 returnDict[profile['id']] = profile
                 
         return flask.jsonify(profiles=returnDict)

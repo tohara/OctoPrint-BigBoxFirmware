@@ -51,6 +51,7 @@ $(function() {
         self.editorIdentifier = ko.observable();
         self.editorIdentifierPlaceholder = ko.observable();
         self.editorInfo = ko.observable();
+        self.editorIsDefault = ko.observable()
         self.editorDefine = ko.observableArray(undefined);
 
         self._cleanProfile = function() {
@@ -58,6 +59,7 @@ $(function() {
                 id: "",
                 name: "",
                 info: "",
+                isDefault: false,
                 define: []
             }
         };
@@ -127,7 +129,7 @@ $(function() {
         });
 
         self.enableEditorSubmitButton = ko.pureComputed(function() {
-            return !self.editorNameInvalid() && !self.editorIdentifierInvalid() && !self.requestInProgress();
+            return !self.editorNameInvalid() && !self.editorIdentifierInvalid() && !self.requestInProgress() && !self.editorIsDefault();
         });
 
         self.editorName.subscribe(function() {
@@ -230,6 +232,7 @@ $(function() {
         	var dataCopy = jQuery.extend(true, {}, data);
         	dataCopy.name = "copy of " + data.name;
         	dataCopy.id = "";
+        	dataCopy.isDefault = false;
         	
         	self.showEditProfileDialog(dataCopy, true);
         };
@@ -249,6 +252,7 @@ $(function() {
             self.editorName(data.name);
             self.editorInfo(data.info);
             self.editorDefine(data.define);
+            self.editorIsDefault(data.isDefault)
            
             
             
@@ -379,7 +383,8 @@ $(function() {
                 dataType: "json",
                 data: JSON.stringify({
                     selected_port: self.connection.selectedPort(),
-                    profileId: profile.id
+                    profileId: profile.id,
+                    isDefault: profile.isDefault
                 }),
                 contentType: "application/json; charset=UTF-8",
                 complete: function() {
