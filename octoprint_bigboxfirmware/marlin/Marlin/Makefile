@@ -11,6 +11,8 @@
 # without the Arduino environment (or Java).
 #
 # Detailed instructions for using the makefile:
+#	sudo apt-get install -y make avr-libc avrdude
+#	
 #
 #  1. Modify the line containing "ARDUINO_INSTALL_DIR" to point to the directory that
 #     contains the Arduino installation (for example, under Mac OS X, this
@@ -36,32 +38,25 @@
 # Note that all settings are set with ?=, this means you can override them
 # from the commandline with "make HARDWARE_MOTHERBOARD=71" for example
 
-# This defined the board you are compiling for (see boards.h for the options)
-HARDWARE_MOTHERBOARD ?= 11
 
 # Arduino source install directory, and version number
-# On most linuxes this will be /usr/share/arduino
-ARDUINO_INSTALL_DIR  ?= /usr/share/arduino
-ARDUINO_VERSION      ?= 105
+# On most linuxes this will be /usr/share/arduino /home/tom/arduino-1.6.8/
+ARDUINO_INSTALL_DIR  ?= $(CURDIR)/../arduino-1.6.8
+#ARDUINO_INSTALL_DIR  ?= $(HOME)/arduino-1.6.8
+ARDUINO_VERSION      ?= 10680
 
 # You can optionally set a path to the avr-gcc tools. Requires a trailing slash. (ex: /usr/local/avr-gcc/bin)
 AVR_TOOLS_PATH ?=
 
 #Programmer configuration
-UPLOAD_RATE        ?= 115200
-AVRDUDE_PROGRAMMER ?= wiring
+UPLOAD_RATE        ?= 230400
+AVRDUDE_PROGRAMMER ?= arduino
 # on most linuxes this will be /dev/ttyACM0 or /dev/ttyACM1 
-UPLOAD_PORT        ?= /dev/arduino
+UPLOAD_PORT        ?= /dev/ttyACM0
 
 #Directory used to build files in, contains all the build files, from object files to the final hex file
 #on linux it is best to put an absolute path like /home/username/tmp .
-BUILD_DIR          ?= applet
-
-# This defines whether Liquid_TWI2 support will be built
-LIQUID_TWI2        ?= 0
-
-# this defines if Wire is needed
-WIRE               ?= 0
+BUILD_DIR          ?= $(CURDIR)/../tmp
 
 ############################################################################
 # Below here nothing should be changed...
@@ -70,171 +65,17 @@ WIRE               ?= 0
 # HARDWARE_VARIANT = "arduino", "Sanguino", "Gen7", ...
 # MCU = "atmega1280", "Mega2560", "atmega2560", "atmega644p", ...
 
-#Gen7
-ifeq ($(HARDWARE_MOTHERBOARD),10)
-HARDWARE_VARIANT ?= Gen7
-MCU              ?= atmega644
-F_CPU            ?= 20000000
-else ifeq  ($(HARDWARE_MOTHERBOARD),11)
-HARDWARE_VARIANT ?= Gen7
-MCU              ?= atmega644p
-F_CPU            ?= 20000000
-else ifeq  ($(HARDWARE_MOTHERBOARD),12)
-HARDWARE_VARIANT ?= Gen7
-MCU              ?= atmega644p
-F_CPU            ?= 20000000
-else ifeq  ($(HARDWARE_MOTHERBOARD),13)
-HARDWARE_VARIANT ?= Gen7
-MCU              ?= atmega1284p
-F_CPU            ?= 20000000
 
-#RAMPS
-else ifeq  ($(HARDWARE_MOTHERBOARD),3)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),33)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),34)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),35)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),36)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),38)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),43)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),44)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),45)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),46)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),48)
-HARDWARE_VARIANT ?= arduino
 MCU              ?= atmega2560
 
-#Gen6
-else ifeq  ($(HARDWARE_MOTHERBOARD),5)
-HARDWARE_VARIANT ?= Gen6
-MCU              ?= atmega644p
-else ifeq  ($(HARDWARE_MOTHERBOARD),51)
-HARDWARE_VARIANT ?= Gen6
-MCU              ?= atmega644p
-
-#Sanguinololu
-else ifeq  ($(HARDWARE_MOTHERBOARD),6)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega644p
-else ifeq  ($(HARDWARE_MOTHERBOARD),62)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega644p
-else ifeq  ($(HARDWARE_MOTHERBOARD),63)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega644p
-else ifeq  ($(HARDWARE_MOTHERBOARD),65)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega1284p
-else ifeq  ($(HARDWARE_MOTHERBOARD),66)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega1284p
-
-#Ultimaker
-else ifeq  ($(HARDWARE_MOTHERBOARD),7)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),71)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega1280
-
-#Teensylu
-else ifeq  ($(HARDWARE_MOTHERBOARD),8)
-HARDWARE_VARIANT ?= Teensy
-MCU              ?= at90usb1286
-else ifeq  ($(HARDWARE_MOTHERBOARD),81)
-HARDWARE_VARIANT ?= Teensy
-MCU              ?= at90usb1286
-else ifeq  ($(HARDWARE_MOTHERBOARD),811)
-HARDWARE_VARIANT ?= Teensy
-MCU              ?= at90usb1286
-else ifeq  ($(HARDWARE_MOTHERBOARD),82)
-HARDWARE_VARIANT ?= Teensy
-MCU              ?= at90usb646
-else ifeq  ($(HARDWARE_MOTHERBOARD),83)
-HARDWARE_VARIANT ?= Teensy
-MCU              ?= at90usb1286
-else ifeq  ($(HARDWARE_MOTHERBOARD),84)
-HARDWARE_VARIANT ?= Teensy
-MCU              ?= at90usb1286
-
-#Gen3+
-else ifeq  ($(HARDWARE_MOTHERBOARD),9)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega644p
-
-#Gen3 Monolithic Electronics
-else ifeq  ($(HARDWARE_MOTHERBOARD),22)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega644p
-
-#Megatronics
-else ifeq  ($(HARDWARE_MOTHERBOARD),70)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-
-#Alpha OMCA board
-else ifeq  ($(HARDWARE_MOTHERBOARD),90)
-HARDWARE_VARIANT ?= SanguinoA
-MCU              ?= atmega644
-
-#Final OMCA board
-else ifeq  ($(HARDWARE_MOTHERBOARD),91)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega644p
-
-#Rambo
-else ifeq  ($(HARDWARE_MOTHERBOARD),301)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-
-# Azteeg
-else ifeq  ($(HARDWARE_MOTHERBOARD),67)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),68)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-
-endif
 
 # Be sure to regenerate speed_lookuptable.h with create_speed_lookuptable.py
 # if you are setting this to something other than 16MHz
 # Set to 16Mhz if not yet set.
 F_CPU ?= 16000000
 
-# Arduino contained the main source code for the Arduino
-# Libraries, the "hardware variant" are for boards
-# that derives from that, and their source are present in
-# the main Marlin source directory
-ifeq ($(HARDWARE_VARIANT), arduino)
-HARDWARE_DIR = $(ARDUINO_INSTALL_DIR)/hardware
-else
-ifeq ($(shell [ $(ARDUINO_VERSION) -ge 100 ] && echo true), true)
-HARDWARE_DIR = ../ArduinoAddons/Arduino_1.x.x
-else
-HARDWARE_DIR = ../ArduinoAddons/Arduino_0.xx
-endif
-endif
-HARDWARE_SRC = $(HARDWARE_DIR)/$(HARDWARE_VARIANT)/cores/arduino
+
+
 
 TARGET = $(notdir $(CURDIR))
 
@@ -243,72 +84,41 @@ TARGET = $(notdir $(CURDIR))
 # directory is added here
 
 VPATH = .
+
+VPATH += $(ARDUINO_INSTALL_DIR)/hardware/arduino/avr/cores/arduino
+VPATH += $(ARDUINO_INSTALL_DIR)/hardware/arduino/avr/variants/mega
+VPATH += $(ARDUINO_INSTALL_DIR)/hardware/arduino/avr/libraries/SPI/src
+VPATH += $(ARDUINO_INSTALL_DIR)/libraries/LiquidCrystal/src
+VPATH += $(ARDUINO_INSTALL_DIR)/libraries/U8glib
+VPATH += $(ARDUINO_INSTALL_DIR)/libraries/U8glib/utility
+
+
 VPATH += $(BUILD_DIR)
-VPATH += $(HARDWARE_SRC)
-ifeq ($(HARDWARE_VARIANT), $(filter $(HARDWARE_VARIANT),arduino Teensy))
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/LiquidCrystal
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/SPI
-ifeq ($(LIQUID_TWI2), 1)
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/Wire
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/Wire/utility
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/LiquidTWI2
-endif
-ifeq ($(WIRE), 1)
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/Wire
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/Wire/utility
-endif
-else
-VPATH += $(HARDWARE_DIR)/libraries/LiquidCrystal
-VPATH += $(HARDWARE_DIR)/libraries/SPI
-ifeq ($(LIQUID_TWI2), 1)
-VPATH += $(HARDWARE_DIR)/libraries/Wire
-VPATH += $(HARDWARE_DIR)/libraries/Wire/utility
-VPATH += $(HARDWARE_DIR)/libraries/LiquidTWI2
-endif
-ifeq ($(WIRE), 1)
-VPATH += $(HARDWARE_DIR)/libraries/Wire
-VPATH += $(HARDWARE_DIR)/libraries/Wire/utility
-endif
-endif
-ifeq ($(HARDWARE_VARIANT), arduino)
-HARDWARE_SUB_VARIANT ?= mega
-VPATH += $(ARDUINO_INSTALL_DIR)/hardware/arduino/variants/$(HARDWARE_SUB_VARIANT)
-else
-HARDWARE_SUB_VARIANT ?= standard
-VPATH += $(HARDWARE_DIR)/$(HARDWARE_VARIANT)/variants/$(HARDWARE_SUB_VARIANT)
-endif
+
+
 SRC = wiring.c \
 	wiring_analog.c wiring_digital.c \
 	wiring_pulse.c \
-	wiring_shift.c WInterrupts.c
-ifeq ($(HARDWARE_VARIANT), Teensy)
-SRC = wiring.c
-VPATH += $(ARDUINO_INSTALL_DIR)/hardware/teensy/cores/teensy
-endif
+	wiring_shift.c WInterrupts.c hooks.c \
+	u8g_font.c u8g_delay.c u8g_pb32h1.c u8g_ll_api.c \
+	u8g_rect.c u8g_bitmap.c u8g_com_null.c u8g_clip.c \
+	u8g_page.c u8g_pb.c u8g_state.c
+	
+
 CXXSRC = WMath.cpp WString.cpp Print.cpp Marlin_main.cpp	\
 	MarlinSerial.cpp Sd2Card.cpp SdBaseFile.cpp SdFatUtil.cpp	\
 	SdFile.cpp SdVolume.cpp planner.cpp stepper.cpp \
 	temperature.cpp cardreader.cpp configuration_store.cpp \
 	watchdog.cpp SPI.cpp servo.cpp Tone.cpp ultralcd.cpp digipot_mcp4451.cpp \
-	dac_mcp4728.cpp vector_3.cpp qr_solve.cpp buzzer.cpp
-ifeq ($(LIQUID_TWI2), 0)
+	dac_mcp4728.cpp vector_3.cpp qr_solve.cpp stopwatch.cpp \
+	mesh_bed_leveling.cpp buzzer.cpp
+
 CXXSRC += LiquidCrystal.cpp
-else
-SRC += twi.c
-CXXSRC += Wire.cpp LiquidTWI2.cpp
-endif
 
-ifeq ($(WIRE), 1)
-SRC += twi.c
-CXXSRC += Wire.cpp
-endif
 
-#Check for Arduino 1.0.0 or higher and use the correct source files for that version
-ifeq ($(shell [ $(ARDUINO_VERSION) -ge 100 ] && echo true), true)
+
 CXXSRC += main.cpp
-else
-SRC += pins_arduino.c main.c
-endif
+
 
 FORMAT = ihex
 
@@ -336,15 +146,11 @@ AVRDUDE = avrdude
 REMOVE = rm -f
 MV = mv -f
 
+
 # Place -D or -U options here
 CDEFS    = -DF_CPU=$(F_CPU) ${addprefix -D , $(DEFINES)}
 CXXDEFS  = $(CDEFS)
 
-ifeq ($(HARDWARE_VARIANT), Teensy)
-CDEFS  += -DUSB_SERIAL
-SRC    += usb.c pins_teensy.c
-CXXSRC += usb_api.cpp
-endif
 
 # Add all the source directories as include directories too
 CINCS = ${addprefix -I ,${VPATH}}
@@ -376,11 +182,9 @@ LDFLAGS = -lm
 # Programming support using avrdude. Settings and variables.
 AVRDUDE_PORT = $(UPLOAD_PORT)
 AVRDUDE_WRITE_FLASH = -Uflash:w:$(BUILD_DIR)/$(TARGET).hex:i
-ifeq ($(shell uname -s), Linux)
+
 AVRDUDE_CONF = /etc/avrdude/avrdude.conf
-else
-AVRDUDE_CONF = $(ARDUINO_INSTALL_DIR)/hardware/tools/avr/etc/avrdude.conf
-endif
+
 AVRDUDE_FLAGS = -D -C$(AVRDUDE_CONF) \
 	-p$(MCU) -P$(AVRDUDE_PORT) -c$(AVRDUDE_PROGRAMMER) \
 	-b$(UPLOAD_RATE)
