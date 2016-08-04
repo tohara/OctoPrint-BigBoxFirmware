@@ -28,7 +28,7 @@
 #define MAX_DIR_DEPTH 10          // Maximum folder depth
 
 #include "SdFile.h"
-#include "enum.h"
+enum LsAction { LS_SerialPrint, LS_Count, LS_GetFilename };
 
 class CardReader {
 public:
@@ -48,7 +48,6 @@ public:
   void openAndPrintFile(const char *name);
   void startFileprint();
   void pauseSDPrint();
-  void stopSDPrint();
   void getStatus();
   void printingHasFinished();
 

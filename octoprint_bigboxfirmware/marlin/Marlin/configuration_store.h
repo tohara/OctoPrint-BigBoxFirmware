@@ -23,7 +23,7 @@
 #ifndef CONFIGURATION_STORE_H
 #define CONFIGURATION_STORE_H
 
-#include "MarlinConfig.h"
+#include "Configuration.h"
 
 void Config_ResetDefault();
 

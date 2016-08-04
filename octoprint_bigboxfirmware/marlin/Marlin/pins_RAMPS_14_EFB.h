@@ -26,9 +26,6 @@
  *  RAMPS_14_EFB (Extruder, Fan, Bed)
  */
 
-#ifndef BOARD_NAME
-  #define BOARD_NAME "RAMPS 1.4 EFB"
-#endif
-
 #define IS_RAMPS_EFB
+
 #include "pins_RAMPS_14.h"

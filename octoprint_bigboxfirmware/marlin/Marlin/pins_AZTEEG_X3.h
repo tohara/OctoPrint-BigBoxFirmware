@@ -24,22 +24,28 @@
  * AZTEEG_X3 Arduino Mega with RAMPS v1.4 pin assignments
  */
 
-#define BOARD_NAME "Azteeg X3"
-
 #include "pins_RAMPS_14_EFB.h"
+
+//LCD Pins//
 
 #if ENABLED(VIKI2) || ENABLED(miniVIKI)
 
-  #undef DOGLCD_A0
-  #undef DOGLCD_CS
-  #undef BTN_ENC
+  #define BEEPER_PIN        33
+
+ // Pins for DOGM SPI LCD Support
   #define DOGLCD_A0         31
   #define DOGLCD_CS         32
-  #define BTN_ENC           12
+  #define LCD_SCREEN_ROT_180
+
+ //The encoder and click button
+  #define BTN_EN1           22
+  #define BTN_EN2            7
+  #define BTN_ENC           12  //the click switch
+
+  #define SDSS              53
+  #define SD_DETECT         -1  // Pin 49 if using display sd interface
 
   #if ENABLED(TEMP_STAT_LEDS)
-    #undef STAT_LED_RED
-    #undef STAT_LED_BLUE
     #define STAT_LED_RED    64
     #define STAT_LED_BLUE   63
   #endif

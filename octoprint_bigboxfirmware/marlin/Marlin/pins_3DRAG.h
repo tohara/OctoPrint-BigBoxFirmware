@@ -21,22 +21,13 @@
  */
 
 /**
- * 3DRAG (and K8200 / K8400) Arduino Mega with RAMPS v1.4 pin assignments
+ * 3DRAG (and K8200) Arduino Mega with RAMPS v1.4 pin assignments
  */
 
-#ifndef BOARD_NAME
-  #define BOARD_NAME "3Drag"
-#endif
-
-#ifndef DEFAULT_MACHINE_NAME
-  #define DEFAULT_MACHINE_NAME "3Drag"
-#endif
-
-#ifndef DEFAULT_SOURCE_CODE_URL
-  #define DEFAULT_SOURCE_CODE_URL "http://3dprint.elettronicain.it/"
-#endif
-
 #include "pins_RAMPS_14.h"
+
+#define DEFAULT_MACHINE_NAME    "3Drag"
+#define DEFAULT_SOURCE_CODE_URL "http://3dprint.elettronicain.it/"
 
 #undef Z_ENABLE_PIN
 #define Z_ENABLE_PIN       63
@@ -86,7 +77,7 @@
   #undef BTN_ENC
   #define BTN_EN1 16
   #define BTN_EN2 17
-  #define BTN_ENC 23
+  #define BTN_ENC 23 //the click
 
 #else
 

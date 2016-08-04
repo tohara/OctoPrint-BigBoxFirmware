@@ -30,14 +30,13 @@
 
 #if ENABLED(SDSUPPORT)
 #include "Sd2Card.h"
-
 //------------------------------------------------------------------------------
 #if DISABLED(SOFTWARE_SPI)
   // functions for hardware SPI
   //------------------------------------------------------------------------------
   // make sure SPCR rate is in expected bits
   #if (SPR0 != 0 || SPR1 != 1)
-    #error "unexpected SPCR bits"
+    #error unexpected SPCR bits
   #endif
   /**
    * Initialize hardware SPI
@@ -100,10 +99,10 @@
     // no interrupts during byte receive - about 8 us
     cli();
     // output pin high - like sending 0XFF
-    WRITE(SPI_MOSI_PIN, HIGH);
+    fastDigitalWrite(SPI_MOSI_PIN, HIGH);
 
     for (uint8_t i = 0; i < 8; i++) {
-      WRITE(SPI_SCK_PIN, HIGH);
+      fastDigitalWrite(SPI_SCK_PIN, HIGH);
 
       // adjust so SCK is nice
       nop;
@@ -111,9 +110,9 @@
 
       data <<= 1;
 
-      if (READ(SPI_MISO_PIN)) data |= 1;
+      if (fastDigitalRead(SPI_MISO_PIN)) data |= 1;
 
-      WRITE(SPI_SCK_PIN, LOW);
+      fastDigitalWrite(SPI_SCK_PIN, LOW);
     }
     // enable interrupts
     sei();
@@ -131,13 +130,13 @@
     // no interrupts during byte send - about 8 us
     cli();
     for (uint8_t i = 0; i < 8; i++) {
-      WRITE(SPI_SCK_PIN, LOW);
+      fastDigitalWrite(SPI_SCK_PIN, LOW);
 
-      WRITE(SPI_MOSI_PIN, data & 0X80);
+      fastDigitalWrite(SPI_MOSI_PIN, data & 0X80);
 
       data <<= 1;
 
-      WRITE(SPI_SCK_PIN, HIGH);
+      fastDigitalWrite(SPI_SCK_PIN, HIGH);
     }
     // hold SCK high for a few ns
     nop;
@@ -145,7 +144,7 @@
     nop;
     nop;
 
-    WRITE(SPI_SCK_PIN, LOW);
+    fastDigitalWrite(SPI_SCK_PIN, LOW);
     // enable interrupts
     sei();
   }
