@@ -50,7 +50,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                                                           line='Parsing configuration..........',
                                                           stream='message'))
         self.parseConfig(profileId)
-        return flask.make_response("Ok.", 200)
+#         return flask.make_response("Ok.", 200)
         self._plugin_manager.send_plugin_message(self._identifier,
                                                      dict(type="logline",
                                                           line='Building Marlin................',
