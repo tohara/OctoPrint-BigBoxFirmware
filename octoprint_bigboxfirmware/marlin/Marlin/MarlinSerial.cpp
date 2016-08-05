@@ -29,9 +29,11 @@
   Modified 14 February 2016 by Andreas Hardtung (added tx buffer)
 */
 
-#include "Marlin.h"
 #include "MarlinSerial.h"
+
 #include "stepper.h"
+
+#include "Marlin.h"
 
 #ifndef USBCON
 // this next line disables the entire HardwareSerial.cpp,
@@ -451,7 +453,7 @@ MarlinSerial customizedSerial;
 #if ENABLED(EMERGENCY_PARSER)
 
   // Currently looking for: M108, M112, M410
-  // If you alter the parser please don't forget to update the capabilities in Conditionals.h
+  // If you alter the parser please don't forget to update the capabilities in Conditionals_post.h
 
   FORCE_INLINE void emergency_parser(unsigned char c) {
 

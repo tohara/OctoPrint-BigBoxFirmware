@@ -270,10 +270,16 @@
   #endif
 
   /**
-   * Z_MIN_PIN and Z_MIN_PROBE_PIN can't co-exist when Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN
+   * Require a Z min pin
    */
-  #if HAS_Z_MIN && HAS_Z_MIN_PROBE_PIN && ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
-    #error "A probe cannot have more than one pin! Use Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN or Z_MIN_PROBE_PIN."
+  #if HAS_Z_MIN
+     // Z_MIN_PIN and Z_MIN_PROBE_PIN can't co-exist when Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN
+    #if HAS_Z_MIN_PROBE_PIN && ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
+      #error "A probe cannot have more than one pin! Use Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN or Z_MIN_PROBE_PIN."
+    #endif
+  #elif !HAS_Z_MIN_PROBE_PIN || (DISABLED(Z_MIN_PROBE_ENDSTOP) || ENABLED(DISABLE_Z_MIN_PROBE_ENDSTOP))
+    // A pin was set for the Z probe, but not enabled.
+    #error "A probe requires a Z_MIN or Z_PROBE pin. Z_MIN_PIN or Z_MIN_PROBE_PIN must point to a valid hardware pin."
   #endif
 
   /**
@@ -328,16 +334,14 @@
   /**
    * Make sure Z raise values are set
    */
-  #if defined(Z_RAISE_BEFORE_PROBING) || defined(Z_RAISE_AFTER_PROBING)
-    #error "Z_RAISE_(BEFORE|AFTER)_PROBING are deprecated. Use Z_RAISE_PROBE_DEPLOY_STOW instead."
-  #elif !defined(Z_RAISE_PROBE_DEPLOY_STOW)
-    #error "You must set Z_RAISE_PROBE_DEPLOY_STOW in your configuration."
-  #elif !defined(Z_RAISE_BETWEEN_PROBINGS)
-    #error "You must set Z_RAISE_BETWEEN_PROBINGS in your configuration."
-  #elif Z_RAISE_PROBE_DEPLOY_STOW < 0
-    #error "Probes need Z_RAISE_PROBE_DEPLOY_STOW >= 0."
-  #elif Z_RAISE_BETWEEN_PROBINGS < 0
-    #error "Probes need Z_RAISE_BETWEEN_PROBINGS >= 0."
+  #if !defined(Z_PROBE_DEPLOY_HEIGHT)
+    #error "You must set Z_PROBE_DEPLOY_HEIGHT in your configuration."
+  #elif !defined(Z_PROBE_TRAVEL_HEIGHT)
+    #error "You must set Z_PROBE_TRAVEL_HEIGHT in your configuration."
+  #elif Z_PROBE_DEPLOY_HEIGHT < 0
+    #error "Probes need Z_PROBE_DEPLOY_HEIGHT >= 0."
+  #elif Z_PROBE_TRAVEL_HEIGHT < 0
+    #error "Probes need Z_PROBE_TRAVEL_HEIGHT >= 0."
   #endif
 
 #else
@@ -382,15 +386,6 @@
    */
   #if ENABLED(DELTA) && DISABLED(AUTO_BED_LEVELING_GRID)
     #error "You must use AUTO_BED_LEVELING_GRID for DELTA bed leveling."
-  #endif
-
-  /**
-   * Require a Z min pin
-   */
-  #if !PIN_EXISTS(Z_MIN)
-    #if !PIN_EXISTS(Z_MIN_PROBE) || (DISABLED(Z_MIN_PROBE_ENDSTOP) || ENABLED(DISABLE_Z_MIN_PROBE_ENDSTOP)) // It's possible for someone to set a pin for the Z probe, but not enable it.
-      #error "AUTO_BED_LEVELING_FEATURE requires a Z_MIN or Z_PROBE endstop. Z_MIN_PIN or Z_MIN_PROBE_PIN must point to a valid hardware pin."
-    #endif
   #endif
 
   /**
@@ -684,8 +679,6 @@
   #error "SDSLOW deprecated. Set SPI_SPEED to SPI_HALF_SPEED instead."
 #elif defined(SDEXTRASLOW)
   #error "SDEXTRASLOW deprecated. Set SPI_SPEED to SPI_QUARTER_SPEED instead."
-#elif defined(Z_RAISE_BEFORE_HOMING)
-  #error "Z_RAISE_BEFORE_HOMING is deprecated. Use MIN_Z_HEIGHT_FOR_HOMING instead."
 #elif defined(FILAMENT_SENSOR)
   #error "FILAMENT_SENSOR is deprecated. Use FILAMENT_WIDTH_SENSOR instead."
 #elif defined(DISABLE_MAX_ENDSTOPS) || defined(DISABLE_MIN_ENDSTOPS)
@@ -698,8 +691,8 @@
   #error "EXTRUDER_OFFSET_[XY] is deprecated. Use HOTEND_OFFSET_[XY] instead."
 #elif defined(PID_PARAMS_PER_EXTRUDER)
   #error "PID_PARAMS_PER_EXTRUDER is deprecated. Use PID_PARAMS_PER_HOTEND instead."
-#elif defined(EXTRUDER_WATTS)
-  #error "EXTRUDER_WATTS is deprecated. Use HOTEND_WATTS instead."
+#elif defined(EXTRUDER_WATTS) || defined(BED_WATTS)
+  #error "EXTRUDER_WATTS and BED_WATTS are deprecated. Remove them from your configuration."
 #elif defined(SERVO_ENDSTOP_ANGLES)
   #error "SERVO_ENDSTOP_ANGLES is deprecated. Use Z_SERVO_ANGLES instead."
 #elif defined(X_ENDSTOP_SERVO_NR) || defined(Y_ENDSTOP_SERVO_NR)
@@ -730,4 +723,14 @@
   #error "HOMING_FEEDRATE is deprecated. Set individual rates with HOMING_FEEDRATE_(XY|Z|E) instead."
 #elif defined(MANUAL_HOME_POSITIONS)
   #error "MANUAL_HOME_POSITIONS is deprecated. Set MANUAL_[XYZ]_HOME_POS as-needed instead."
+#elif defined(PID_ADD_EXTRUSION_RATE)
+  #error "PID_ADD_EXTRUSION_RATE is now PID_EXTRUSION_SCALING and is DISABLED by default. Are you sure you want to use this option? Please update your configuration."
+#elif defined(Z_RAISE_BEFORE_HOMING)
+  #error "Z_RAISE_BEFORE_HOMING is now Z_HOMING_HEIGHT. Please update your configuration."
+#elif defined(MIN_Z_HEIGHT_FOR_HOMING)
+  #error "MIN_Z_HEIGHT_FOR_HOMING is now Z_HOMING_HEIGHT. Please update your configuration."
+#elif defined(Z_RAISE_BEFORE_PROBING) || defined(Z_RAISE_AFTER_PROBING)
+  #error "Z_RAISE_(BEFORE|AFTER)_PROBING are deprecated. Use Z_PROBE_DEPLOY_HEIGHT instead."
+#elif defined(Z_RAISE_PROBE_DEPLOY_STOW) || defined(Z_RAISE_BETWEEN_PROBINGS)
+  #error "Z_RAISE_PROBE_DEPLOY_STOW and Z_RAISE_BETWEEN_PROBINGS are now Z_PROBE_DEPLOY_HEIGHT and Z_PROBE_TRAVEL_HEIGHT Please update your configuration."
 #endif

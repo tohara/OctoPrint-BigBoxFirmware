@@ -65,8 +65,12 @@
       #define SD_DETECT_INVERTED
     #endif
 
-    #define ENCODER_PULSES_PER_STEP 4
-    #define ENCODER_STEPS_PER_MENU_ITEM 1
+    #ifndef ENCODER_PULSES_PER_STEP
+      #define ENCODER_PULSES_PER_STEP 4
+    #endif
+    #ifndef ENCODER_STEPS_PER_MENU_ITEM
+      #define ENCODER_STEPS_PER_MENU_ITEM 1
+    #endif
   #endif
 
   // Generic support for SSD1306 / SH1106 OLED based LCDs.
@@ -85,7 +89,6 @@
     #ifndef ENCODER_PULSES_PER_STEP
       #define ENCODER_PULSES_PER_STEP 4
     #endif
-
     #ifndef ENCODER_STEPS_PER_MENU_ITEM
       #define ENCODER_STEPS_PER_MENU_ITEM 1
     #endif
@@ -146,7 +149,6 @@
     #ifndef ENCODER_PULSES_PER_STEP
       #define ENCODER_PULSES_PER_STEP 4
     #endif
-
     #ifndef ENCODER_STEPS_PER_MENU_ITEM
       #define ENCODER_STEPS_PER_MENU_ITEM 1
     #endif
@@ -166,6 +168,15 @@
     #define LCD_USE_I2C_BUZZER //comment out to disable buzzer on LCD (requires LiquidTWI2 v1.2.3 or later)
     #define ULTIPANEL
     #define NEWPANEL
+
+    #define ENCODER_FEEDRATE_DEADZONE 4
+
+    #ifndef ENCODER_PULSES_PER_STEP
+      #define ENCODER_PULSES_PER_STEP 1
+    #endif
+    #ifndef ENCODER_STEPS_PER_MENU_ITEM
+      #define ENCODER_STEPS_PER_MENU_ITEM 2
+    #endif
   #endif
 
   // Shift register panels
@@ -265,6 +276,44 @@
 
   #ifndef BOOTSCREEN_TIMEOUT
     #define BOOTSCREEN_TIMEOUT 2500
+  #endif
+
+  /**
+   * Extruders have some combination of stepper motors and hotends
+   * so we separate these concepts into the defines:
+   *
+   *  EXTRUDERS    - Number of Selectable Tools
+   *  HOTENDS      - Number of hotends, whether connected or separate
+   *  E_STEPPERS   - Number of actual E stepper motors
+   *  TOOL_E_INDEX - Index to use when getting/setting the tool state
+   *  
+   */
+  #if ENABLED(SINGLENOZZLE)             // One hotend, multi-extruder
+    #define HOTENDS      1
+    #define E_STEPPERS   EXTRUDERS
+    #define E_MANUAL     EXTRUDERS
+    #define TOOL_E_INDEX current_block->active_extruder
+    #undef TEMP_SENSOR_1_AS_REDUNDANT
+    #undef HOTEND_OFFSET_X
+    #undef HOTEND_OFFSET_Y
+  #elif ENABLED(SWITCHING_EXTRUDER)     // One E stepper, unified E axis, two hotends
+    #define HOTENDS      EXTRUDERS
+    #define E_STEPPERS   1
+    #define E_MANUAL     1
+    #define TOOL_E_INDEX 0
+    #ifndef HOTEND_OFFSET_Z
+      #define HOTEND_OFFSET_Z { 0 }
+    #endif
+  #elif ENABLED(MIXING_EXTRUDER)        // Multi-stepper, unified E axis, one hotend
+    #define HOTENDS      1
+    #define E_STEPPERS   MIXING_STEPPERS
+    #define E_MANUAL     1
+    #define TOOL_E_INDEX 0
+  #else                                 // One stepper, E axis, and hotend per tool
+    #define HOTENDS      EXTRUDERS
+    #define E_STEPPERS   EXTRUDERS
+    #define E_MANUAL     EXTRUDERS
+    #define TOOL_E_INDEX current_block->active_extruder
   #endif
 
 #endif //CONDITIONALS_LCD_H

@@ -58,12 +58,13 @@
  *
  */
 
-#include "Marlin.h"
 #include "planner.h"
 #include "stepper.h"
 #include "temperature.h"
 #include "ultralcd.h"
 #include "language.h"
+
+#include "Marlin.h"
 
 #if ENABLED(MESH_BED_LEVELING)
   #include "mesh_bed_leveling.h"
@@ -782,7 +783,7 @@ void Planner::check_axes_activity() {
    * Having the real displacement of the head, we can calculate the total movement length and apply the desired speed.
    */
   #if ENABLED(COREXY) || ENABLED(COREXZ) || ENABLED(COREYZ)
-    float delta_mm[6];
+    float delta_mm[7];
     #if ENABLED(COREXY)
       delta_mm[X_HEAD] = dx * steps_to_mm[A_AXIS];
       delta_mm[Y_HEAD] = dy * steps_to_mm[B_AXIS];
@@ -1182,8 +1183,13 @@ void Planner::reset_acceleration_rates() {
 
 // Recalculate position, steps_to_mm if axis_steps_per_mm changes!
 void Planner::refresh_positioning() {
-  LOOP_XYZE(i) planner.steps_to_mm[i] = 1.0 / planner.axis_steps_per_mm[i];
-  set_position_mm(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
+  LOOP_XYZE(i) steps_to_mm[i] = 1.0 / axis_steps_per_mm[i];
+  #if ENABLED(DELTA) || ENABLED(SCARA)
+    inverse_kinematics(current_position);
+    set_position_mm(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], current_position[E_AXIS]);
+  #else
+    set_position_mm(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
+  #endif
   reset_acceleration_rates();
 }
 

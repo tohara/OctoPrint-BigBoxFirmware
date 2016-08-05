@@ -42,26 +42,30 @@
   #define SLED_PIN         -1
 #endif
 
-#define X_STEP_PIN 37
-#define X_DIR_PIN 48
 #define X_MIN_PIN 12
 #define X_MAX_PIN 24
+#define Y_MIN_PIN 11
+#define Y_MAX_PIN 23
+#define Z_MIN_PIN 10
+#define Z_MAX_PIN 30
+#ifndef Z_MIN_PROBE_PIN
+  #define Z_MIN_PROBE_PIN 10
+#endif
+
+#define X_STEP_PIN 37
+#define X_DIR_PIN 48
 #define X_ENABLE_PIN 29
 #define X_MS1_PIN 40
 #define X_MS2_PIN 41
 
 #define Y_STEP_PIN 36
 #define Y_DIR_PIN 49
-#define Y_MIN_PIN 11
-#define Y_MAX_PIN 23
 #define Y_ENABLE_PIN 28
 #define Y_MS1_PIN 69
 #define Y_MS2_PIN 39
 
 #define Z_STEP_PIN 35
 #define Z_DIR_PIN 47
-#define Z_MIN_PIN 10
-#define Z_MAX_PIN 30
 #define Z_ENABLE_PIN 27
 #define Z_MS1_PIN 68
 #define Z_MS2_PIN 67
@@ -114,9 +118,6 @@
 
   #if ENABLED(NEWPANEL)
 
-    // Beeper on AUX-4
-    #define BEEPER_PIN 79
-
     #define LCD_PINS_RS 70
     #define LCD_PINS_ENABLE 71
     #define LCD_PINS_D4 72
@@ -124,12 +125,36 @@
     #define LCD_PINS_D6 74
     #define LCD_PINS_D7 75
 
-    //buttons are directly attached using AUX-2
-    #define BTN_EN1 76
-    #define BTN_EN2 77
-    #define BTN_ENC 78
+    #if ENABLED(VIKI2) || ENABLED(miniVIKI)
+      #define BEEPER_PIN 44
 
-    #define SD_DETECT_PIN 81 // Ramps doesn't use this
+      #define DOGLCD_A0  70
+      #define DOGLCD_CS  71
+      #define LCD_SCREEN_ROT_180
+
+      #define BTN_EN1 85
+      #define BTN_EN2 84
+      #define BTN_ENC 83
+
+      #define SD_DETECT_PIN -1 // Pin 72 if using easy adapter board
+
+      #if ENABLED(TEMP_STAT_LEDS)
+        #define STAT_LED_RED      22
+        #define STAT_LED_BLUE     32
+      #endif
+
+    #else
+
+      #define BEEPER_PIN 79 // AUX-4
+
+      // AUX-2
+      #define BTN_EN1 76
+      #define BTN_EN2 77
+      #define BTN_ENC 78
+
+      #define SD_DETECT_PIN 81
+
+    #endif // VIKI2/miniVIKI
 
   #else //!NEWPANEL - old style panel with shift register
 
@@ -153,24 +178,4 @@
   #endif // !NEWPANEL
 
 #endif // ULTRA_LCD
-
-#if ENABLED(VIKI2) || ENABLED(miniVIKI)
-  #define BEEPER_PIN 44
-  // Pins for DOGM SPI LCD Support
-  #define DOGLCD_A0  70
-  #define DOGLCD_CS  71
-  #define LCD_SCREEN_ROT_180
-
-  //The encoder and click button
-  #define BTN_EN1 85
-  #define BTN_EN2 84
-  #define BTN_ENC 83
-
-  #define SD_DETECT_PIN -1 // Pin 72 if using easy adapter board
-
-  #if ENABLED(TEMP_STAT_LEDS)
-    #define STAT_LED_RED      22
-    #define STAT_LED_BLUE     32
-  #endif
-#endif // VIKI2/miniVIKI
 

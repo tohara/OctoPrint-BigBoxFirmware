@@ -35,12 +35,10 @@
 
 #include "MarlinConfig.h"
 
-#include "fastio.h"
-
 #include "enum.h"
+#include "types.h"
+#include "fastio.h"
 #include "utility.h"
-
-typedef unsigned long millis_t;
 
 #ifdef USBCON
   #include "HardwareSerial.h"
@@ -217,7 +215,6 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 /**
  * The axis order in all axis related arrays is X, Y, Z, E
  */
-#define NUM_AXIS 4
 #define _AXIS(AXIS) AXIS ##_AXIS
 
 void enable_all_steppers();
@@ -263,7 +260,7 @@ extern int feedrate_percentage;
 
 #define MMM_TO_MMS(MM_M) ((MM_M)/60.0)
 #define MMS_TO_MMM(MM_S) ((MM_S)*60.0)
-#define MMM_SCALED(MM_M) ((MM_M)*feedrate_percentage/100.0)
+#define MMM_SCALED(MM_M) ((MM_M)*feedrate_percentage*0.01)
 #define MMS_SCALED(MM_S) MMM_SCALED(MM_S)
 #define MMM_TO_MMS_SCALED(MM_M) (MMS_SCALED(MMM_TO_MMS(MM_M)))
 
@@ -314,6 +311,7 @@ float code_value_temp_diff();
     void adjust_delta(float cartesian[3]);
   #endif
 #elif ENABLED(SCARA)
+  extern float delta[3];
   extern float axis_scaling[3];  // Build size scaling
   void inverse_kinematics(const float cartesian[3]);
   void forward_kinematics_SCARA(float f_scara[3]);
@@ -353,7 +351,7 @@ float code_value_temp_diff();
   extern FilamentChangeMenuResponse filament_change_menu_response;
 #endif
 
-#if ENABLED(PID_ADD_EXTRUSION_RATE)
+#if ENABLED(PID_EXTRUSION_SCALING)
   extern int lpq_len;
 #endif
 
@@ -385,14 +383,8 @@ extern uint8_t active_extruder;
 void calculate_volumetric_multipliers();
 
 // Buzzer
-#if HAS_BUZZER
-  #if ENABLED(SPEAKER)
-    #include "speaker.h"
-    extern Speaker buzzer;
-  #else
-    #include "buzzer.h"
-    extern Buzzer buzzer;
-  #endif
+#if HAS_BUZZER && PIN_EXISTS(BEEPER)
+  #include "buzzer.h"
 #endif
 
 /**

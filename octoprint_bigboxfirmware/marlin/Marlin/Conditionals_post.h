@@ -99,17 +99,33 @@
   #ifdef MANUAL_X_HOME_POS
     #define X_HOME_POS MANUAL_X_HOME_POS
   #elif ENABLED(BED_CENTER_AT_0_0)
-    #define X_HOME_POS ((X_MAX_LENGTH) * (X_HOME_DIR) * 0.5)
+    #if ENABLED(DELTA)
+      #define X_HOME_POS 0
+    #else
+      #define X_HOME_POS ((X_MAX_LENGTH) * (X_HOME_DIR) * 0.5)
+    #endif
   #else
-    #define X_HOME_POS (X_HOME_DIR < 0 ? X_MIN_POS : X_MAX_POS)
+    #if ENABLED(DELTA)
+      #define X_HOME_POS ((X_MAX_LENGTH) * 0.5)
+    #else
+      #define X_HOME_POS (X_HOME_DIR < 0 ? X_MIN_POS : X_MAX_POS)
+    #endif
   #endif
 
   #ifdef MANUAL_Y_HOME_POS
     #define Y_HOME_POS MANUAL_Y_HOME_POS
   #elif ENABLED(BED_CENTER_AT_0_0)
-    #define Y_HOME_POS ((Y_MAX_LENGTH) * (Y_HOME_DIR) * 0.5)
+    #if ENABLED(DELTA)
+      #define Y_HOME_POS 0
+    #else
+      #define Y_HOME_POS ((Y_MAX_LENGTH) * (Y_HOME_DIR) * 0.5)
+    #endif
   #else
-    #define Y_HOME_POS (Y_HOME_DIR < 0 ? Y_MIN_POS : Y_MAX_POS)
+    #if ENABLED(DELTA)
+      #define Y_HOME_POS ((Y_MAX_LENGTH) * 0.5)
+    #else
+      #define Y_HOME_POS (Y_HOME_DIR < 0 ? Y_MIN_POS : Y_MAX_POS)
+    #endif
   #endif
 
   #ifdef MANUAL_Z_HOME_POS
@@ -308,40 +324,6 @@
    */
   #define HAS_PID_HEATING (ENABLED(PIDTEMP) || ENABLED(PIDTEMPBED))
   #define HAS_PID_FOR_BOTH (ENABLED(PIDTEMP) && ENABLED(PIDTEMPBED))
-
-  /**
-   * Extruders have some combination of stepper motors and hotends
-   * so we separate these concepts into the defines:
-   *
-   *  EXTRUDERS    - Number of Selectable Tools
-   *  HOTENDS      - Number of hotends, whether connected or separate
-   *  E_STEPPERS   - Number of actual E stepper motors
-   *  TOOL_E_INDEX - Index to use when getting/setting the tool state
-   *  
-   */
-  #if ENABLED(SINGLENOZZLE)             // One hotend, multi-extruder
-    #define HOTENDS      1
-    #define E_STEPPERS   EXTRUDERS
-    #define TOOL_E_INDEX current_block->active_extruder
-    #undef TEMP_SENSOR_1_AS_REDUNDANT
-    #undef HOTEND_OFFSET_X
-    #undef HOTEND_OFFSET_Y
-  #elif ENABLED(SWITCHING_EXTRUDER)     // One E stepper, unified E axis, two hotends
-    #define HOTENDS      EXTRUDERS
-    #define E_STEPPERS   1
-    #define TOOL_E_INDEX 0
-    #ifndef HOTEND_OFFSET_Z
-      #define HOTEND_OFFSET_Z { 0 }
-    #endif
-  #elif ENABLED(MIXING_EXTRUDER)        // Multi-stepper, unified E axis, one hotend
-    #define HOTENDS      1
-    #define E_STEPPERS   MIXING_STEPPERS
-    #define TOOL_E_INDEX 0
-  #else                                 // One stepper, E axis, and hotend per tool
-    #define HOTENDS      EXTRUDERS
-    #define E_STEPPERS   EXTRUDERS
-    #define TOOL_E_INDEX current_block->active_extruder
-  #endif
 
   /**
    * Default hotend offsets, if not defined
@@ -593,10 +575,10 @@
         #define XY_PROBE_SPEED 4000
       #endif
     #endif
-    #if Z_RAISE_BETWEEN_PROBINGS > Z_RAISE_PROBE_DEPLOY_STOW
-      #define _Z_RAISE_PROBE_DEPLOY_STOW Z_RAISE_BETWEEN_PROBINGS
+    #if Z_PROBE_TRAVEL_HEIGHT > Z_PROBE_DEPLOY_HEIGHT
+      #define _Z_PROBE_DEPLOY_HEIGHT Z_PROBE_TRAVEL_HEIGHT
     #else
-      #define _Z_RAISE_PROBE_DEPLOY_STOW Z_RAISE_PROBE_DEPLOY_STOW
+      #define _Z_PROBE_DEPLOY_HEIGHT Z_PROBE_DEPLOY_HEIGHT
     #endif
   #else
     #undef X_PROBE_OFFSET_FROM_EXTRUDER
@@ -665,17 +647,17 @@
   #endif
 
   /**
-   * MIN_Z_HEIGHT_FOR_HOMING / Z_RAISE_BETWEEN_PROBINGS
+   * Z_HOMING_HEIGHT / Z_PROBE_TRAVEL_HEIGHT
    */
-  #ifndef MIN_Z_HEIGHT_FOR_HOMING
-    #ifndef Z_RAISE_BETWEEN_PROBINGS
-      #define MIN_Z_HEIGHT_FOR_HOMING 0
+  #ifndef Z_HOMING_HEIGHT
+    #ifndef Z_PROBE_TRAVEL_HEIGHT
+      #define Z_HOMING_HEIGHT 0
     #else
-      #define MIN_Z_HEIGHT_FOR_HOMING Z_RAISE_BETWEEN_PROBINGS
+      #define Z_HOMING_HEIGHT Z_PROBE_TRAVEL_HEIGHT
     #endif
   #endif
-  #ifndef Z_RAISE_BETWEEN_PROBINGS
-    #define Z_RAISE_BETWEEN_PROBING MIN_Z_HEIGHT_FOR_HOMING
+  #ifndef Z_PROBE_TRAVEL_HEIGHT
+    #define Z_PROBE_TRAVEL_HEIGHT Z_HOMING_HEIGHT
   #endif
 
 #endif // CONDITIONALS_POST_H

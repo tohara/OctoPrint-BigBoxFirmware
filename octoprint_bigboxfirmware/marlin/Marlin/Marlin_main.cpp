@@ -61,6 +61,7 @@
 #include "math.h"
 #include "nozzle.h"
 #include "duration_t.h"
+#include "types.h"
 
 #if ENABLED(USE_WATCHDOG)
   #include "watchdog.h"
@@ -373,13 +374,14 @@ static millis_t stepper_inactive_time = (DEFAULT_STEPPER_DEACTIVE_TIME) * 1000UL
   Stopwatch print_job_timer = Stopwatch();
 #endif
 
-// Buzzer
-#if HAS_BUZZER
-  #if ENABLED(SPEAKER)
-    Speaker buzzer;
-  #else
-    Buzzer buzzer;
-  #endif
+// Buzzer - I2C on the LCD or a BEEPER_PIN
+#if ENABLED(LCD_USE_I2C_BUZZER)
+  #define BUZZ(d,f) lcd_buzz(d, f)
+#elif HAS_BUZZER
+  Buzzer buzzer;
+  #define BUZZ(d,f) buzzer.tone(d, f)
+#else
+  #define BUZZ(d,f) NOOP
 #endif
 
 static uint8_t target_extruder;
@@ -456,7 +458,7 @@ static uint8_t target_extruder;
   #define TOWER_2 Y_AXIS
   #define TOWER_3 Z_AXIS
 
-  float delta[3] = { 0 };
+  float delta[3];
   float cartesian_position[3] = { 0 };
   #define SIN_60 0.8660254037844386
   #define COS_60 0.5
@@ -489,7 +491,7 @@ static uint8_t target_extruder;
 
 #if ENABLED(SCARA)
   float delta_segments_per_second = SCARA_SEGMENTS_PER_SECOND;
-  static float delta[3] = { 0 };
+  float delta[3];
   float axis_scaling[3] = { 1, 1, 1 };    // Build size scaling, default to 1
 #endif
 
@@ -535,7 +537,7 @@ static bool send_ok[BUFSIZE];
   boolean chdkActive = false;
 #endif
 
-#if ENABLED(PID_ADD_EXTRUSION_RATE)
+#if ENABLED(PID_EXTRUSION_SCALING)
   int lpq_len = 20;
 #endif
 
@@ -943,7 +945,7 @@ void setup() {
     dac_init();
   #endif
 
-  #if ENABLED(Z_PROBE_SLED)
+  #if ENABLED(Z_PROBE_SLED) && PIN_EXISTS(SLED)
     pinMode(SLED_PIN, OUTPUT);
     digitalWrite(SLED_PIN, LOW); // turn it off
   #endif // Z_PROBE_SLED
@@ -1800,10 +1802,6 @@ static void clean_up_after_endstop_or_probe_move() {
       }
     #endif
     float z_dest = LOGICAL_Z_POSITION(z_raise);
-
-    if (zprobe_zoffset < 0)
-      z_dest -= zprobe_zoffset;
-
     if (z_dest > current_position[Z_AXIS])
       do_blocking_move_to_z(z_dest);
   }
@@ -1860,8 +1858,10 @@ static void clean_up_after_endstop_or_probe_move() {
 
     // Dock sled a bit closer to ensure proper capturing
     do_blocking_move_to_x(X_MAX_POS + SLED_DOCKING_OFFSET - ((stow) ? 1 : 0));
-    digitalWrite(SLED_PIN, !stow); // switch solenoid
 
+    #if PIN_EXISTS(SLED)
+      digitalWrite(SLED_PIN, !stow); // switch solenoid
+    #endif
   }
 
 #endif // Z_PROBE_SLED
@@ -2050,7 +2050,7 @@ static void clean_up_after_endstop_or_probe_move() {
     if (endstops.z_probe_enabled == deploy) return false;
 
     // Make room for probe
-    do_probe_raise(_Z_RAISE_PROBE_DEPLOY_STOW);
+    do_probe_raise(_Z_PROBE_DEPLOY_HEIGHT);
 
     #if ENABLED(Z_PROBE_SLED)
       if (axis_unhomed_error(true, false, false)) { stop(); return true; }
@@ -2110,16 +2110,21 @@ static void clean_up_after_endstop_or_probe_move() {
       planner.bed_level_matrix.set_to_identity();
     #endif
 
-    do_blocking_move_to_z(-(Z_MAX_LENGTH + 10), Z_PROBE_SPEED_FAST);
-    endstops.hit_on_purpose();
-    set_current_from_steppers_for_axis(Z_AXIS);
-    SYNC_PLAN_POSITION_KINEMATIC();
+    #if ENABLED(PROBE_DOUBLE_TOUCH)
+      do_blocking_move_to_z(-(Z_MAX_LENGTH + 10), Z_PROBE_SPEED_FAST);
+      endstops.hit_on_purpose();
+      set_current_from_steppers_for_axis(Z_AXIS);
+      SYNC_PLAN_POSITION_KINEMATIC();
 
-    // move up the retract distance
-    do_blocking_move_to_z(current_position[Z_AXIS] + home_bump_mm(Z_AXIS), Z_PROBE_SPEED_FAST);
+      // move up the retract distance
+      do_blocking_move_to_z(current_position[Z_AXIS] + home_bump_mm(Z_AXIS), Z_PROBE_SPEED_FAST);
+    #else
+      // move fast, close to the bed
+      do_blocking_move_to_z(home_bump_mm(Z_AXIS), Z_PROBE_SPEED_FAST);
+    #endif
 
-    // move back down slowly to find bed
-    do_blocking_move_to_z(current_position[Z_AXIS] - home_bump_mm(Z_AXIS) * 2, Z_PROBE_SPEED_SLOW);
+    // move down slowly to find bed
+    do_blocking_move_to_z(current_position[Z_AXIS] -2.0*home_bump_mm(Z_AXIS), Z_PROBE_SPEED_SLOW);
     endstops.hit_on_purpose();
     set_current_from_steppers_for_axis(Z_AXIS);
     SYNC_PLAN_POSITION_KINEMATIC();
@@ -2154,7 +2159,7 @@ static void clean_up_after_endstop_or_probe_move() {
     float old_feedrate_mm_m = feedrate_mm_m;
 
     // Ensure a minimum height before moving the probe
-    do_probe_raise(Z_RAISE_BETWEEN_PROBINGS);
+    do_probe_raise(Z_PROBE_TRAVEL_HEIGHT);
 
     // Move to the XY where we shall probe
     #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -2184,7 +2189,7 @@ static void clean_up_after_endstop_or_probe_move() {
       #if ENABLED(DEBUG_LEVELING_FEATURE)
         if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> do_probe_raise");
       #endif
-      do_probe_raise(Z_RAISE_BETWEEN_PROBINGS);
+      do_probe_raise(Z_PROBE_TRAVEL_HEIGHT);
     }
 
     if (verbose_level > 2) {
@@ -2413,6 +2418,10 @@ static void homeaxis(AxisEnum axis) {
   // Move slowly towards the endstop until triggered
   line_to_axis_pos(axis, 2 * home_bump_mm(axis) * axis_home_dir, get_homing_bump_feedrate(axis));
 
+  // reset current_position to 0 to reflect hitting endpoint
+  current_position[axis] = 0;
+  sync_plan_position();
+
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) DEBUG_POS("> TRIGGER ENDSTOP", current_position);
   #endif
@@ -2429,7 +2438,6 @@ static void homeaxis(AxisEnum axis) {
         lockZ1 = (z_endstop_adj < 0);
 
       if (lockZ1) stepper.set_z_lock(true); else stepper.set_z2_lock(true);
-      sync_plan_position();
 
       // Move to the adjusted endstop height
       line_to_axis_pos(axis, adj);
@@ -2442,7 +2450,6 @@ static void homeaxis(AxisEnum axis) {
   #if ENABLED(DELTA)
     // retrace by the amount specified in endstop_adj
     if (endstop_adj[axis] * axis_home_dir < 0) {
-      sync_plan_position();
       #if ENABLED(DEBUG_LEVELING_FEATURE)
         if (DEBUGGING(LEVELING)) {
           SERIAL_ECHOPAIR("> endstop_adj = ", endstop_adj[axis]);
@@ -2515,7 +2522,7 @@ static void homeaxis(AxisEnum axis) {
         SYNC_PLAN_POSITION_KINEMATIC();
       }
 
-      feedrate_mm_m = MMM_TO_MMS(retract_recover_feedrate_mm_s);
+      feedrate_mm_m = MMS_TO_MMM(retract_recover_feedrate_mm_s);
       float move_e = swapping ? retract_length_swap + retract_recover_length_swap : retract_length + retract_recover_length;
       current_position[E_AXIS] -= move_e / volumetric_multiplier[active_extruder];
       sync_plan_position_e();
@@ -2960,7 +2967,7 @@ inline void gcode_G28() {
 
       if (home_all_axis || homeX || homeY) {
         // Raise Z before homing any other axes and z is not already high enough (never lower z)
-        destination[Z_AXIS] = LOGICAL_Z_POSITION(MIN_Z_HEIGHT_FOR_HOMING);
+        destination[Z_AXIS] = LOGICAL_Z_POSITION(Z_HOMING_HEIGHT);
         if (destination[Z_AXIS] > current_position[Z_AXIS]) {
 
           #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -3041,7 +3048,7 @@ inline void gcode_G28() {
           if (home_all_axis) {
 
             /**
-             * At this point we already have Z at MIN_Z_HEIGHT_FOR_HOMING height
+             * At this point we already have Z at Z_HOMING_HEIGHT height
              * No need to move Z any more as this height should already be safe
              * enough to reach Z_SAFE_HOMING XY positions.
              * Just make sure the planner is in sync.
@@ -3205,10 +3212,10 @@ inline void gcode_G28() {
     feedrate_mm_m = homing_feedrate_mm_m[X_AXIS];
 
     current_position[Z_AXIS] = MESH_HOME_SEARCH_Z
-      #if Z_RAISE_BETWEEN_PROBINGS > MIN_Z_HEIGHT_FOR_HOMING
-        + Z_RAISE_BETWEEN_PROBINGS
-      #elif MIN_Z_HEIGHT_FOR_HOMING > 0
-        + MIN_Z_HEIGHT_FOR_HOMING
+      #if Z_PROBE_TRAVEL_HEIGHT > Z_HOMING_HEIGHT
+        + Z_PROBE_TRAVEL_HEIGHT
+      #elif Z_HOMING_HEIGHT > 0
+        + Z_HOMING_HEIGHT
       #endif
     ;
     line_to_current_position();
@@ -3217,7 +3224,7 @@ inline void gcode_G28() {
     current_position[Y_AXIS] = LOGICAL_Y_POSITION(y);
     line_to_current_position();
 
-    #if Z_RAISE_BETWEEN_PROBINGS > 0 || MIN_Z_HEIGHT_FOR_HOMING > 0
+    #if Z_PROBE_TRAVEL_HEIGHT > 0 || Z_HOMING_HEIGHT > 0
       current_position[Z_AXIS] = LOGICAL_Z_POSITION(MESH_HOME_SEARCH_Z);
       line_to_current_position();
     #endif
@@ -3313,10 +3320,10 @@ inline void gcode_G28() {
         else {
           // One last "return to the bed" (as originally coded) at completion
           current_position[Z_AXIS] = MESH_HOME_SEARCH_Z
-            #if Z_RAISE_BETWEEN_PROBINGS > MIN_Z_HEIGHT_FOR_HOMING
-              + Z_RAISE_BETWEEN_PROBINGS
-            #elif MIN_Z_HEIGHT_FOR_HOMING > 0
-              + MIN_Z_HEIGHT_FOR_HOMING
+            #if Z_PROBE_TRAVEL_HEIGHT > Z_HOMING_HEIGHT
+              + Z_PROBE_TRAVEL_HEIGHT
+            #elif Z_HOMING_HEIGHT > 0
+              + Z_HOMING_HEIGHT
             #endif
           ;
           line_to_current_position();
@@ -3650,7 +3657,7 @@ inline void gcode_G28() {
 
     #endif // !AUTO_BED_LEVELING_GRID
 
-    // Raise to _Z_RAISE_PROBE_DEPLOY_STOW. Stow the probe.
+    // Raise to _Z_PROBE_DEPLOY_HEIGHT. Stow the probe.
     if (STOW_PROBE()) return;
 
     // Restore state after probing
@@ -4459,12 +4466,20 @@ inline void gcode_M104() {
       SERIAL_PROTOCOL_F(thermalManager.degHotend(target_extruder), 1);
       SERIAL_PROTOCOLPGM(" /");
       SERIAL_PROTOCOL_F(thermalManager.degTargetHotend(target_extruder), 1);
+      #if ENABLED(SHOW_TEMP_ADC_VALUES)
+        SERIAL_PROTOCOLPAIR(" (", thermalManager.current_temperature_raw[target_extruder] / OVERSAMPLENR);
+        SERIAL_CHAR(')');
+      #endif
     #endif
     #if HAS_TEMP_BED
       SERIAL_PROTOCOLPGM(" B:");
       SERIAL_PROTOCOL_F(thermalManager.degBed(), 1);
       SERIAL_PROTOCOLPGM(" /");
       SERIAL_PROTOCOL_F(thermalManager.degTargetBed(), 1);
+      #if ENABLED(SHOW_TEMP_ADC_VALUES)
+        SERIAL_PROTOCOLPAIR(" (", thermalManager.current_temperature_bed_raw / OVERSAMPLENR);
+        SERIAL_CHAR(')');
+      #endif
     #endif
     #if HOTENDS > 1
       HOTEND_LOOP() {
@@ -4473,47 +4488,25 @@ inline void gcode_M104() {
         SERIAL_PROTOCOL_F(thermalManager.degHotend(e), 1);
         SERIAL_PROTOCOLPGM(" /");
         SERIAL_PROTOCOL_F(thermalManager.degTargetHotend(e), 1);
+        #if ENABLED(SHOW_TEMP_ADC_VALUES)
+          SERIAL_PROTOCOLPAIR(" (", thermalManager.current_temperature_raw[e] / OVERSAMPLENR);
+          SERIAL_CHAR(')');
+        #endif
       }
     #endif
+    SERIAL_PROTOCOLPGM(" @:");
+    SERIAL_PROTOCOL(thermalManager.getHeaterPower(target_extruder));
     #if HAS_TEMP_BED
       SERIAL_PROTOCOLPGM(" B@:");
-      #ifdef BED_WATTS
-        SERIAL_PROTOCOL(((BED_WATTS) * thermalManager.getHeaterPower(-1)) / 127);
-        SERIAL_PROTOCOLCHAR('W');
-      #else
-        SERIAL_PROTOCOL(thermalManager.getHeaterPower(-1));
-      #endif
-    #endif
-    SERIAL_PROTOCOLPGM(" @:");
-    #ifdef EXTRUDER_WATTS
-      SERIAL_PROTOCOL(((EXTRUDER_WATTS) * thermalManager.getHeaterPower(target_extruder)) / 127);
-      SERIAL_PROTOCOLCHAR('W');
-    #else
-      SERIAL_PROTOCOL(thermalManager.getHeaterPower(target_extruder));
+      SERIAL_PROTOCOL(thermalManager.getHeaterPower(-1));
     #endif
     #if HOTENDS > 1
       HOTEND_LOOP() {
         SERIAL_PROTOCOLPAIR(" @", e);
         SERIAL_PROTOCOLCHAR(':');
-        #ifdef EXTRUDER_WATTS
-          SERIAL_PROTOCOL(((EXTRUDER_WATTS) * thermalManager.getHeaterPower(e)) / 127);
-          SERIAL_PROTOCOLCHAR('W');
-        #else
-          SERIAL_PROTOCOL(thermalManager.getHeaterPower(e));
-        #endif
+        SERIAL_PROTOCOL(thermalManager.getHeaterPower(e));
       }
     #endif
-    #if ENABLED(SHOW_TEMP_ADC_VALUES)
-      #if HAS_TEMP_BED
-        SERIAL_PROTOCOLPAIR("    ADC B:", thermalManager.current_temperature_bed_raw / OVERSAMPLENR);
-      #endif
-      HOTEND_LOOP() {
-        SERIAL_PROTOCOLPAIR(" T", e);
-        SERIAL_PROTOCOLCHAR(':');
-        SERIAL_PROTOCOL(thermalManager.current_temperature_raw[e] / OVERSAMPLENR);
-      }
-    #endif
-    SERIAL_EOL;
   }
 #endif
 
@@ -5666,7 +5659,7 @@ inline void gcode_M226() {
     // Limits the tone duration to 0-5 seconds.
     NOMORE(duration, 5000);
 
-    buzzer.tone(duration, frequency);
+    BUZZ(duration, frequency);
   }
 
 #endif // HAS_BUZZER
@@ -5680,7 +5673,7 @@ inline void gcode_M226() {
    *   I[float] Ki term (unscaled)
    *   D[float] Kd term (unscaled)
    *
-   * With PID_ADD_EXTRUSION_RATE:
+   * With PID_EXTRUSION_SCALING:
    *
    *   C[float] Kc term
    *   L[float] LPQ length
@@ -5695,7 +5688,7 @@ inline void gcode_M226() {
       if (code_seen('P')) PID_PARAM(Kp, e) = code_value_float();
       if (code_seen('I')) PID_PARAM(Ki, e) = scalePID_i(code_value_float());
       if (code_seen('D')) PID_PARAM(Kd, e) = scalePID_d(code_value_float());
-      #if ENABLED(PID_ADD_EXTRUSION_RATE)
+      #if ENABLED(PID_EXTRUSION_SCALING)
         if (code_seen('C')) PID_PARAM(Kc, e) = code_value_float();
         if (code_seen('L')) lpq_len = code_value_float();
         NOMORE(lpq_len, LPQ_MAX_LEN);
@@ -5713,7 +5706,7 @@ inline void gcode_M226() {
       SERIAL_ECHO(unscalePID_i(PID_PARAM(Ki, e)));
       SERIAL_ECHOPGM(" d:");
       SERIAL_ECHO(unscalePID_d(PID_PARAM(Kd, e)));
-      #if ENABLED(PID_ADD_EXTRUSION_RATE)
+      #if ENABLED(PID_EXTRUSION_SCALING)
         SERIAL_ECHOPGM(" c:");
         //Kc does not have scaling applied above, or in resetting defaults
         SERIAL_ECHO(PID_PARAM(Kc, e));
@@ -6138,9 +6131,7 @@ inline void gcode_M428() {
         SERIAL_ERROR_START;
         SERIAL_ERRORLNPGM(MSG_ERR_M428_TOO_FAR);
         LCD_ALERTMESSAGEPGM("Err: Too far!");
-        #if HAS_BUZZER
-          buzzer.tone(200, 40);
-        #endif
+        BUZZ(200, 40);
         err = true;
         break;
       }
@@ -6151,10 +6142,8 @@ inline void gcode_M428() {
     SYNC_PLAN_POSITION_KINEMATIC();
     report_current_position();
     LCD_MESSAGEPGM(MSG_HOME_OFFSETS_APPLIED);
-    #if HAS_BUZZER
-      buzzer.tone(200, 659);
-      buzzer.tone(200, 698);
-    #endif
+    BUZZ(200, 659);
+    BUZZ(200, 698);
   }
 }
 
@@ -6336,7 +6325,7 @@ inline void gcode_M503() {
       #if HAS_BUZZER
         millis_t ms = millis();
         if (ms >= next_tick) {
-          buzzer.tone(300, 2000);
+          BUZZ(300, 2000);
           next_tick = ms + 2500; // Beep every 2.5s while waiting
         }
       #endif
@@ -8479,7 +8468,7 @@ void idle(
     print_job_timer.tick();
   #endif
 
-  #if HAS_BUZZER
+  #if HAS_BUZZER && PIN_EXISTS(BEEPER)
     buzzer.tick();
   #endif
 }
