@@ -500,10 +500,10 @@ const bool Z_MIN_PROBE_ENDSTOP_INVERTING = false; // set to true to invert the l
 // @section machine
 
 // Travel limits after homing (units are in mm)
-#define X_MIN_POS 0 //Modified by BigBoxFirmware Plugin
+#define X_MIN_POS -38 // -38 for Dual, 0 for Pro
 #define Y_MIN_POS 0
 #define Z_MIN_POS 0
-#define X_MAX_POS 260 //Modified by BigBoxFirmware Plugin
+#define X_MAX_POS 300
 #define Y_MAX_POS 235
 #define Z_MAX_POS 300
 
@@ -573,8 +573,8 @@ const bool Z_MIN_PROBE_ENDSTOP_INVERTING = false; // set to true to invert the l
   #if ENABLED(AUTO_BED_LEVELING_GRID)
 
     #define LEFT_PROBE_BED_POSITION 10
-    #define RIGHT_PROBE_BED_POSITION 200 //Modified by BigBoxFirmware Plugin
-    #define FRONT_PROBE_BED_POSITION 35 //Modified by BigBoxFirmware Plugin
+    #define RIGHT_PROBE_BED_POSITION 265 // BigBox | 265 for Dual, 235 for Pro
+    #define FRONT_PROBE_BED_POSITION 15
     #define BACK_PROBE_BED_POSITION 185
 
     #define MIN_PROBE_EDGE 10 // The Z probe minimum square sides can be no smaller than this.
@@ -615,7 +615,7 @@ const bool Z_MIN_PROBE_ENDSTOP_INVERTING = false; // set to true to invert the l
   //  (0,0)
   #define X_PROBE_OFFSET_FROM_EXTRUDER -25  // BigBox | -25 for Dual, -65 for Pro // X offset: -left  +right  [of the nozzle]
   #define Y_PROBE_OFFSET_FROM_EXTRUDER 0  // Y offset: -front +behind [the nozzle]
-  #define Z_PROBE_OFFSET_FROM_EXTRUDER -1 //Modified by BigBoxFirmware Plugin
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER -2   // Z offset: -below +above  [the nozzle]
 
   #define XY_TRAVEL_SPEED 3000         // X and Y axis travel speed between probes, in mm/min.
 
@@ -694,7 +694,7 @@ const bool Z_MIN_PROBE_ENDSTOP_INVERTING = false; // set to true to invert the l
 
 // default settings
 
-#define DEFAULT_AXIS_STEPS_PER_UNIT {160,180,1600,304} //Modified by BigBoxFirmware Plugin
+#define DEFAULT_AXIS_STEPS_PER_UNIT   {160,180,1600,417.5}  // default steps per unit for Titan BigBox
 #define DEFAULT_MAX_FEEDRATE          {150, 150, 6, 50}    // (mm/sec)
 #define DEFAULT_MAX_ACCELERATION      {1000,1000,100,10000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for Skeinforge 40+, for older versions raise them a lot.
 

@@ -77,23 +77,23 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                                                           stream='message'))
         
         self._printer.disconnect()   
-        
+         
         avrdude_command = [avrdude_path, "-v", "-p", "m2560", "-c", "wiring", "-P", selected_port, "-U", "flash:w:" + hex_path + ":i", "-D"]
-        
+         
         self._plugin_manager.send_plugin_message(self._identifier,
                                                      dict(type="logline",
                                                           line='Command: ' + ' '.join(avrdude_command),
                                                           stream='stdout'))
-        
-        output = self.execute(avrdude_command, cwd=os.path.dirname(avrdude_path))
-        
+         
+#         output = self.execute(avrdude_command, cwd=os.path.dirname(avrdude_path))
+         
         self._plugin_manager.send_plugin_message(self._identifier,
                                                      dict(type="logline",
                                                           line='Cleaning up build files....',
                                                           stream='message'))
-        
+         
         output = self.execute(['make', 'clean', 'BUILD_DIR=' + build_folder], cwd=self._basefolder + '/marlin/Marlin')
-        
+         
         self._printer.connect(port=selected_port)
 
  
@@ -180,6 +180,9 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         data_folder = self.get_plugin_data_folder()
         profile_folder = data_folder + '/profiles'
         default_folder = self._basefolder + '/default_profiles'
+        
+        if not os.path.isdir(profile_folder):
+            os.mkdir(profile_folder)
         
         _,_,fileList = os.walk(profile_folder).next()
         _,_,defaultFileList = os.walk(default_folder).next()
