@@ -14,7 +14,7 @@ Under development and not yet tested on a BigBox!!!!!!!!!
 		
 #### Enabled:
 		If this check box is not ticked the #define variable will be commented out in the configuration files.
-		I.e: Enabled => "//#define EXTRUDERS 2" , not enabled => "#define EXTRUDERS 2"
+		I.e: Enabled => "#define EXTRUDERS 2" , not enabled => "//#define EXTRUDERS 2"
 		
 		
 
