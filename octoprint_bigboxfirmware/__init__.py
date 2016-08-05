@@ -51,14 +51,14 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                                                           line='Parsing configuration..........',
                                                           stream='message'))
         self.parseConfig(profileId, isDefault)
-#         return flask.make_response("Ok.", 200)
+
         self._plugin_manager.send_plugin_message(self._identifier,
                                                      dict(type="logline",
                                                           line='Building Marlin................',
                                                           stream='message'))
         
         
-        output = self.execute(['make', 'BUILD_DIR=' + build_folder], cwd=self._basefolder + '/marlin/Marlin')
+        self.execute(['make', 'BUILD_DIR=' + build_folder], cwd=self._basefolder + '/marlin/Marlin')
 
             
         hexFileExist = os.path.exists(hex_path)
@@ -85,14 +85,14 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                                                           line='Command: ' + ' '.join(avrdude_command),
                                                           stream='stdout'))
          
-#         output = self.execute(avrdude_command, cwd=os.path.dirname(avrdude_path))
+        self.execute(avrdude_command, cwd=os.path.dirname(avrdude_path))
          
         self._plugin_manager.send_plugin_message(self._identifier,
                                                      dict(type="logline",
                                                           line='Cleaning up build files....',
                                                           stream='message'))
          
-        output = self.execute(['make', 'clean', 'BUILD_DIR=' + build_folder], cwd=self._basefolder + '/marlin/Marlin')
+        self.execute(['make', 'clean', 'BUILD_DIR=' + build_folder], cwd=self._basefolder + '/marlin/Marlin')
          
         self._printer.connect(port=selected_port)
 
@@ -133,7 +133,20 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         for template in templates:
             tempFile = open(templateFolder + '/' + template, 'r')
-            targFile = open(marlinFolder + '/' + template, 'w')
+            
+            
+            try:
+                targFile = open(marlinFolder + '/' + template, 'w')
+            except (IOError, ), e:
+                self._plugin_manager.send_plugin_message(self._identifier, 
+                                                     dict(type="logline",
+                                                          line=str(e) + '. Trying to change permission...' ,
+                                                          stream='stderr'))
+                
+                self.execute(['sudo', '-S','chmod', '666', marlinFolder + '/' + template], stdin=PIPE, pswd='raspberry')
+                
+                targFile = open(marlinFolder + '/' + template, 'w')
+                
             
             for line in tempFile.readlines():
                 
@@ -352,10 +365,10 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 				displayVersion=self._plugin_version,
 
 				# version check: github repository
-				type="github_commit",
+				type="github_release",
 				user="tohara",
 				repo="OctoPrint-BigBoxFirmware",
-                branch="dev",
+                branch="RC6",
 				current=self._plugin_version,
 
 				# update method: pip
