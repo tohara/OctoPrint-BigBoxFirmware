@@ -13,7 +13,7 @@ from octoprint.server import admin_permission
 from octoprint.events import Events
 from subprocess import call, Popen, PIPE
 import threading
-import apt
+
 
 
 class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
@@ -176,14 +176,21 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     @octoprint.server.util.flask.restricted_access
     @octoprint.server.admin_permission.require(403)
     def check_dep(self):
-        cache = apt.Cache()
+        #cache = apt.Cache()
         
+        def checkInstalled(package):
+            res = Popen(['dpkg', '-s', package], stdout=PIPE)
+            
+            return 'Status: install ok installed' in res.communicate()[0]
+            
         isInstalled = True
         
         for packageName in self.depList:
             try:
-                isInstalled = isInstalled and cache[packageName].is_installed
+#                 print 'try:', packageName
+                isInstalled = isInstalled and checkInstalled(packageName)
             except:
+#                 print 'except:', packageName , str(e)
                 isInstalled = False
                     
         return flask.jsonify(isInstalled=isInstalled)
@@ -368,7 +375,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 				type="github_release",
 				user="tohara",
 				repo="OctoPrint-BigBoxFirmware",
-                branch="RC7",
+                branch="RC6",
 				current=self._plugin_version,
 
 				# update method: pip
