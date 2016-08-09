@@ -35,7 +35,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
       
         if not os.path.isdir(profileFolder):
             os.mkdir(profileFolder)
-            call(['cp', defaultProfileFolder + '/.', profileFolder + '/' ])
+            call(['cp', '-a', defaultProfileFolder + '/.', profileFolder + '/' ])
             
         
         
