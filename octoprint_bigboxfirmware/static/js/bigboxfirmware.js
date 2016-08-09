@@ -56,7 +56,6 @@ $(function() {
                 id: "",
                 name: "",
                 info: "",
-                isDefault: false,
                 define: [],
                 url: '',
                 branch: ''
@@ -128,7 +127,7 @@ $(function() {
         });
 
         self.enableEditorSubmitButton = ko.pureComputed(function() {
-            return !self.editorNameInvalid() && !self.editorIdentifierInvalid() && !self.requestInProgress() && !self.editorIsDefault();
+            return !self.editorNameInvalid() && !self.editorIdentifierInvalid() && !self.requestInProgress();
         });
 
         self.editorName.subscribe(function() {
@@ -137,9 +136,13 @@ $(function() {
         
         self.editorUrl.subscribe(function() {
         	
+        	self.editorBranchList.removeAll();
         	_.each(self.repoUrlList(), function(repo) {  
         		if (repo.repoUrl == self.editorUrl()) {
-        			self.editorBranchList(repo.branchList);
+        			_.each(repo.branchList, function(branch) {
+        				self.editorBranchList.push(branch);
+        			});
+        			
         		}
             });
         });
@@ -245,7 +248,6 @@ $(function() {
         	var dataCopy = jQuery.extend(true, {}, data);
         	dataCopy.name = "copy of " + data.name;
         	dataCopy.id = "";
-        	dataCopy.isDefault = false;
         	
         	self.showEditProfileDialog(dataCopy, true);
         };
@@ -260,8 +262,8 @@ $(function() {
             
             self.editorUrlList.removeAll();
         	_.each(self.repoUrlList(), function(repo) {  
-        		console.log('add repo url:');
-        		console.log(repo.repoUrl);
+//        		console.log('add repo url:');
+//        		console.log(repo.repoUrl);
         		self.editorUrlList.push(repo.repoUrl);
         		
             });
@@ -272,7 +274,6 @@ $(function() {
             self.editorName(data.name);
             self.editorInfo(data.info);
             self.editorDefine(data.define);
-            self.editorIsDefault(data.isDefault)
             self.editorUrl(data.url);
             self.editorBranch(data.branch);
            
@@ -366,7 +367,7 @@ $(function() {
         };
         
         self.removeRepo = function(repo) {
-        	console.log(repo);
+//        	console.log(repo);
         	var repoInUse = self.profiles.getItem(function(item) {return item.url == repo.repoUrl});
         	if (repoInUse && repo.repoUrl != '') {
         		new PNotify({
@@ -387,8 +388,8 @@ $(function() {
         };
         
         self.updateRepo = function(repo) {
-        	console.log('Update:');
-        	console.log(repo);
+//        	console.log('Update:');
+//        	console.log(repo);
 //        	self.repoEditorUrlList.remove(repo);
 //        	self.repoEditorUrlList.push({repoUrl: repo.repoUrl, add: true, branchList: []});
         	
@@ -522,8 +523,7 @@ $(function() {
                 dataType: "json",
                 data: JSON.stringify({
                     selected_port: self.connection.selectedPort(),
-                    profileId: profile.id,
-                    isDefault: profile.isDefault
+                    profileId: profile.id
                 }),
                 contentType: "application/json; charset=UTF-8",
                 complete: function() {

@@ -22,97 +22,93 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                            octoprint.plugin.TemplatePlugin,
                            octoprint.plugin.AssetPlugin,
                            octoprint.plugin.SettingsPlugin,
-                           octoprint.plugin.EventHandlerPlugin):
+                           octoprint.plugin.EventHandlerPlugin,
+                           octoprint.plugin.StartupPlugin):
     
     
+    
+    
+    def on_after_startup(self):
+        dataFolder = self.get_plugin_data_folder()
+        profileFolder = dataFolder + '/profiles'
+        defaultProfileFolder = self._basefolder + '/default_profiles'
+      
+        if not os.path.isdir(profileFolder):
+            os.mkdir(profileFolder)
+            call(['cp', defaultProfileFolder + '/.', profileFolder + '/' ])
+            
+        
+        
     
     @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
     @octoprint.server.util.flask.restricted_access
     @octoprint.server.admin_permission.require(403)
     def make_marlin(self):
         
-        avrdude_path = '/usr/bin/avrdude'
-        selected_port = flask.request.json['selected_port']
+        avrdudePath = '/usr/bin/avrdude'
+        selectedPort = flask.request.json['selected_port']
         profileId = flask.request.json['profileId']
-        isDefault = flask.request.json['isDefault']
-        data_folder = self.get_plugin_data_folder()
-        build_folder = data_folder + '/tmp'
-        hex_path = build_folder + '/Marlin.hex'
+        dataFolder = self.get_plugin_data_folder()
+        buildFolder = dataFolder + '/tmp'
+        hexPath = buildFolder + '/Marlin.hex'
+        libPath = self._basefolder + '/lib'
+        arduinoLibPath = libPath + '/arduino-1.6.8'
+        makeFilePath = libPath + '/Makefile'
+        
+        profile = self.getProfileFromId(profileId)
+        repoPath = self.getRepoNamePath(profile['url'])
+        marlinFolder = repoPath + '/Marlin'
         
         
-        if self._printer.is_printing():
-            self._plugin_manager.send_plugin_message(self._identifier, 
-                                                     dict(type="logline",
-                                                          line='Printer is busy! Aborted Flashing!',
-                                                          stream='stderr'))
-            
+        if self._printer.is_printing() or self._printer.is_paused():
+            self._sendStatus(line='Printer is busy! Aborted Flashing!', stream='stderr')
             return flask.make_response("Error.", 500)
         
-        self._plugin_manager.send_plugin_message(self._identifier,
-                                                     dict(type="logline",
-                                                          line='Parsing configuration..........',
-                                                          stream='message'))
-        self.parseConfig(profileId, isDefault)
+        
+        self._sendStatus(line='Checking out selected branch...', stream='message')
+        
+        self.execute(['git', 'checkout', '-f', profile['branch']], cwd= repoPath)
+        
+        self._sendStatus(line='Writing configuration..........', stream='message')
+        
+        self.writeMarlinConfig(profile, marlinFolder)
 
-        self._plugin_manager.send_plugin_message(self._identifier,
-                                                     dict(type="logline",
-                                                          line='Building Marlin................',
-                                                          stream='message'))
+        self._sendStatus(line='Building Marlin................', stream='message')
         
         
-        self.execute(['make', 'BUILD_DIR=' + build_folder], cwd=self._basefolder + '/marlin/Marlin')
-
-            
-        hexFileExist = os.path.exists(hex_path)
+        self.execute(['make', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath], cwd=marlinFolder)
+  
+        hexFileExist = os.path.exists(hexPath)
         
         if not hexFileExist:
-            self._plugin_manager.send_plugin_message(self._identifier, 
-                                                     dict(type="logline",
-                                                          line='Something went wrong. Hex file does not exist!',
-                                                          stream='stderr'))
+            self._sendStatus(line='Something went wrong. Hex file does not exist!', stream='stderr')
             return flask.make_response("Error", 500)
-        
         else:
-            self._plugin_manager.send_plugin_message(self._identifier,
-                                                     dict(type="logline",
-                                                          line='Marlin.hex found! Proceeding to flash with avrdude.',
-                                                          stream='message'))
+            self._sendStatus(line='Marlin.hex found! Proceeding to flash with avrdude.', stream='message')
         
         self._printer.disconnect()   
          
-        avrdude_command = [avrdude_path, "-v", "-p", "m2560", "-c", "wiring", "-P", selected_port, "-U", "flash:w:" + hex_path + ":i", "-D"]
+        avrdude_command = [avrdudePath, "-v", "-p", "m2560", "-c", "wiring", "-P", selectedPort, "-U", "flash:w:" + hexPath + ":i", "-D"]
          
-        self._plugin_manager.send_plugin_message(self._identifier,
-                                                     dict(type="logline",
-                                                          line='Command: ' + ' '.join(avrdude_command),
-                                                          stream='stdout'))
+        self._sendStatus(line='Command: ' + ' '.join(avrdude_command), stream='stdout')
          
-        self.execute(avrdude_command, cwd=os.path.dirname(avrdude_path))
+        self.execute(avrdude_command, cwd=os.path.dirname(avrdudePath))
          
-        self._plugin_manager.send_plugin_message(self._identifier,
-                                                     dict(type="logline",
-                                                          line='Cleaning up build files....',
-                                                          stream='message'))
+        self._sendStatus(line='Cleaning up build files....', stream='message')
          
-        self.execute(['make', 'clean', 'BUILD_DIR=' + build_folder], cwd=self._basefolder + '/marlin/Marlin')
+        self.execute(['make', 'clean', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath], cwd=marlinFolder)
          
-        self._printer.connect(port=selected_port)
+        self._printer.connect(port=selectedPort)
 
  
         return flask.make_response("Ok.", 200)
+        
     
-    def parseConfig(self, profileId, isDefault):
-        dataFolder = self.get_plugin_data_folder()
-        profilePath = self._basefolder + '/default_profiles/' + profileId if isDefault else dataFolder + '/profiles/' + profileId
-        templateFolder = self._basefolder + '/marlin/templates'
-        marlinFolder = self._basefolder + '/marlin/Marlin'
+    def writeMarlinConfig(self, profile, marlinFolder):
         templates = ('Configuration.h', 'Configuration_adv.h')
         processedIds = []
         
-        with open(profilePath, 'r+b') as f:
-                profile = eval(f.read())['profile']
-                
-        
+               
         def insertDefine(splittedLine, targFile, line):
             
             identifier = splittedLine.strip().split()[1]
@@ -131,26 +127,13 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 targFile.write(line)
                 
             
-            
-        
         for template in templates:
-            tempFile = open(templateFolder + '/' + template, 'r')
-            
-            
-            try:
-                targFile = open(marlinFolder + '/' + template, 'w')
-            except (IOError, ), e:
-                self._plugin_manager.send_plugin_message(self._identifier, 
-                                                     dict(type="logline",
-                                                          line=str(e) + '. Trying to change permission...' ,
-                                                          stream='stderr'))
-                
-                self.execute(['sudo', '-S','chmod', '666', marlinFolder + '/' + template], stdin=PIPE, pswd='raspberry')
-                
-                targFile = open(marlinFolder + '/' + template, 'w')
-                
-            
-            for line in tempFile.readlines():
+            with open(marlinFolder + '/' + template, 'r') as f:
+                templateFileBuffer = f.readlines()
+
+            targFile = open(marlinFolder + '/' + template, 'w')  
+                            
+            for line in templateFileBuffer:
                 
                 splitted = line.split('//', 2)
                 
@@ -165,11 +148,18 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                     
                 
                 targFile.write(line)
-            
-            tempFile.close()
+           
             targFile.flush()
             targFile.close()
             
+            
+    def getProfileFromId(self, profileId):
+        dataFolder = self.get_plugin_data_folder()
+        profilePath = dataFolder + '/profiles/' + profileId
+        with open(profilePath, 'r+b') as f:
+                profile = eval(f.read())['profile']
+                
+        return profile       
             
     
     depList = ['avr-libc', 'avrdude', 'make']
@@ -189,38 +179,29 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         for packageName in self.depList:
             try:
-#                 print 'try:', packageName
                 isInstalled = isInstalled and checkInstalled(packageName)
             except:
-#                 print 'except:', packageName , str(e)
                 isInstalled = False
                     
         return flask.jsonify(isInstalled=isInstalled)
     
     @octoprint.plugin.BlueprintPlugin.route("/firmwareprofiles", methods=["GET"])
     def getProfileList(self):
-        data_folder = self.get_plugin_data_folder()
-        profile_folder = data_folder + '/profiles'
-        default_folder = self._basefolder + '/default_profiles'
+        dataFolder = self.get_plugin_data_folder()
+        profile_folder = dataFolder + '/profiles'
         
         if not os.path.isdir(profile_folder):
             os.mkdir(profile_folder)
         
         _,_,fileList = os.walk(profile_folder).next()
-        _,_,defaultFileList = os.walk(default_folder).next()
         
         returnDict = {}
         for pFile in fileList:
             with open(profile_folder +'/'+ pFile, 'r+b') as f:
                 profile = eval(f.read())['profile']
-                profile['isDefault'] = False
+#                 profile['isDefault'] = False
                 returnDict[profile['id']] = profile 
-                
-        for pFile in defaultFileList:
-            with open(default_folder +'/'+ pFile, 'r+b') as f:
-                profile = eval(f.read())['profile']
-                profile['isDefault'] = True
-                returnDict[profile['id']] = profile
+       
                 
         repos = self.getRepos()
                 
@@ -232,10 +213,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     def install_dep(self):
         
         installCommand = ['sudo', '-S', 'apt-get', 'install', '-y'] + self.depList
-        self._plugin_manager.send_plugin_message(self._identifier,
-                                                     dict(type="logline",
-                                                          line='Command: ' + ' '.join(installCommand),
-                                                          stream='stdout'))
+        self._sendStatus(line='Command: ' + ' '.join(installCommand), stream='stdout')
         
         self.execute(installCommand, stdin=PIPE, pswd='raspberry')
                     
@@ -245,8 +223,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     @octoprint.server.util.flask.restricted_access
     @octoprint.server.admin_permission.require(403)
     def addNewProfile(self):
-        data_folder = self.get_plugin_data_folder()
-        profile_folder = data_folder + '/profiles'
+        dataFolder = self.get_plugin_data_folder()
+        profile_folder = dataFolder + '/profiles'
         
         if not os.path.isdir(profile_folder):
             os.mkdir(profile_folder)
@@ -274,8 +252,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     @octoprint.server.util.flask.restricted_access
     @octoprint.server.admin_permission.require(403)
     def deleteProfile(self, identifier):
-        data_folder = self.get_plugin_data_folder()
-        file_path = data_folder + '/profiles/' + identifier
+        dataFolder = self.get_plugin_data_folder()
+        file_path = dataFolder + '/profiles/' + identifier
            
         if os.path.isfile(file_path):
             os.remove(file_path)
@@ -286,8 +264,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     @octoprint.server.util.flask.restricted_access
     @octoprint.server.admin_permission.require(403)
     def updateProfile(self, identifier):
-        data_folder = self.get_plugin_data_folder()
-        profile_folder = data_folder + '/profiles'
+        dataFolder = self.get_plugin_data_folder()
+        profile_folder = dataFolder + '/profiles'
         
         if not os.path.isdir(profile_folder):
             os.mkdir(profile_folder)
@@ -315,17 +293,11 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     @octoprint.server.util.flask.restricted_access
     @octoprint.server.admin_permission.require(403)
     def saveRepos(self):
-        data_folder = self.get_plugin_data_folder()
-        repo_folder = data_folder + '/repos'
-        
-        if not os.path.isdir(repo_folder):
-            os.mkdir(repo_folder)
-            
         repoList = flask.request.json['repoUrlList']
         
         for exsitingRepo in self.getRepos():
             if exsitingRepo not in repoList:
-                repoUserFolder = repo_folder + '/' + self.getRepoUser(exsitingRepo['repoUrl'])
+                repoUserFolder = self.getRepoUserPath(exsitingRepo['repoUrl'])
                 #print 'Going to delete:', exsitingRepo['repoUrl']
                 self.execute(['rm', '-rfv', self.getRepoName(exsitingRepo['repoUrl'])], cwd= repoUserFolder)
         
@@ -333,26 +305,10 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             
             if repo['add']:
                 if self.isValidGithubRepo(repo['repoUrl']):
-                    repoUserFolder = repo_folder + '/' + self.getRepoUser(repo['repoUrl'])
-                    
-                    if not os.path.exists(repoUserFolder):
-                        os.mkdir(repoUserFolder)
-                        
+                    repoUserFolder = self.getRepoUserPath(repo['repoUrl'])
                     
                     self.execute(['git', 'clone', '-v', '--progress', repo['repoUrl']], cwd= repoUserFolder)
-            
-                
-                
-        
-        
-        
-        
-#         print '****************Output from addNewProfile:*************************'
-#         print flask.request.json
-#         for i in flask.request.json['profile']:
-#             print i
-#         print type(flask.request.json)
-       
+          
        
         return flask.make_response("", 204)
     
@@ -360,32 +316,20 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     @octoprint.server.util.flask.restricted_access
     @octoprint.server.admin_permission.require(403)
     def updateRepos(self):
-        data_folder = self.get_plugin_data_folder()
-        repo_folder = data_folder + '/repos'
-        
-        if not os.path.isdir(repo_folder):
-            os.mkdir(repo_folder)
-            
+       
         repo = flask.request.json['repo']
         repoUrl = repo['repoUrl']
-        repoPath = repo_folder + '/' + self.getRepoUser(repoUrl) + '/' + self.getRepoName(repoUrl)
+        repoNamePath = self.getRepoNamePath(repoUrl)
         
-        self._plugin_manager.send_plugin_message(self._identifier,
-                                                     dict(type="logline",
-                                                          line= 'Pull changes from remote:' + repoUrl,
-                                                          stream='stdout'))
+        self._sendStatus(line= 'Pull changes from remote:' + repoUrl, stream='stdout')
         
-        self.execute(['git', 'pull', '-f'], cwd= repoPath)
+        self.execute(['git', 'pull', '-f'], cwd= repoNamePath)
        
        
         return flask.make_response("", 204)
             
     def getRepos(self):
-        data_folder = self.get_plugin_data_folder()
-        repo_folder = data_folder + '/repos'
-        
-        if not os.path.isdir(repo_folder):
-            os.mkdir(repo_folder)
+        repo_folder = self.getRepoPath()
             
         repoUserList = os.listdir(repo_folder)
         repoList = []
@@ -444,30 +388,68 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     def isValidGithubRepo(self, repoUrl, checkOnline=True):
         
         valid = False
-        
-        if 'https://' == repoUrl[0:8] and '.git' == repoUrl[-4:]:
-            if checkOnline:
-                h = httplib2.Http()
-                resp = h.request(repoUrl)
-                valid = int(resp[0]['status']) < 400
-            else:
-                valid = True
-        
+        try:
+            if 'https://' == repoUrl[0:8] and '.git' == repoUrl[-4:]:
+                if checkOnline:
+                    h = httplib2.Http()
+                    resp = h.request(repoUrl)
+                    valid = int(resp[0]['status']) < 400
+                else:
+                    valid = True
+        except:
+            valid = False
+            
         if not valid:
-            self._plugin_manager.send_plugin_message(self._identifier,
-                                                     dict(type="logline",
-                                                          line= repoUrl + ' is not a valid Github repo or no internet connection.',
-                                                          stream='stderr'))
-        
+            self._sendStatus(line= repoUrl + ' is not a valid Github repo or no internet connection.',stream='stderr')
+            
         return valid
     
     def getRepoUser(self, repoUrl):
+        if not ('https://' == repoUrl[0:8] and '.git' == repoUrl[-4:]):
+            raise self.RepoUrlException('The repo URL is wrong format!')
         
-        return repoUrl.replace('https://', '').split('/')[1]
+        try:
+            return repoUrl.replace('https://', '').split('/')[1]
+        except Exception:
+            raise self.RepoUrlException('The repo URL is wrong format!')
+    def getRepoPath(self):
+        dataFolder = self.get_plugin_data_folder()
+        repoFolder = dataFolder + '/repos'
+        
+        if not os.path.isdir(repoFolder):
+            os.mkdir(repoFolder)
+            
+        return repoFolder
+            
+    def getRepoUserPath(self, repoUrl):
+                       
+        repoUserPath = self.getRepoPath() + '/' + self.getRepoUser(repoUrl)
+        
+        if not os.path.isdir(repoUserPath):
+            os.mkdir(repoUserPath)
+        
+        return repoUserPath
     
     def getRepoName(self, repoUrl):
         
-        return repoUrl.replace('https://', '').split('/')[2].replace('.git', '').strip()
+        if not ('https://' == repoUrl[0:8] and '.git' == repoUrl[-4:]):
+            raise self.RepoUrlException('The repo URL is wrong format!')
+        
+        try:
+            return repoUrl.replace('https://', '').split('/')[2].replace('.git', '').strip()
+        except Exception:
+            raise self.RepoUrlException('The repo URL is wrong format!')
+    
+    def getRepoNamePath(self, repoUrl):
+        
+        repoNamePath = self.getRepoUserPath(repoUrl) + '/' + self.getRepoName(repoUrl)
+        if not os.path.isdir(repoNamePath):
+            os.mkdir(repoNamePath)
+        
+        return repoNamePath
+    
+    class RepoUrlException(Exception):
+        pass
 
     def execute(self, args, **kwargs):
         
@@ -484,12 +466,12 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         def stdoutListener():
             for line in linesStdout:
                 #print 'stdout:', line
-                self._plugin_manager.send_plugin_message(self._identifier, dict(type="logline", line=line.replace('\n', ''), stream='stdout'))
+                self._sendStatus(line=line.replace('\n', ''), stream='stdout')
                 
         def stderrListener():
             for line in linesStderr:
                 #print 'stderr:', line
-                self._plugin_manager.send_plugin_message(self._identifier, dict(type="logline", line=line.replace('\n', ''), stream='stderr'))
+                self._sendStatus(line=line.replace('\n', ''), stream='stderr')
                 
             
         
@@ -539,10 +521,10 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 				displayVersion=self._plugin_version,
 
 				# version check: github repository
-				type="github_release",
+				type="github_commit",
 				user="tohara",
 				repo="OctoPrint-BigBoxFirmware",
-                #branch="RC6",
+                branch="dev",
 				current=self._plugin_version,
 
 				# update method: pip
@@ -550,9 +532,11 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 			)
 		)
         
+    
     #~~ Extra methods
-    def _send_status(self, status_type, status_value, status_description=""):
-        self._plugin_manager.send_plugin_message(self._identifier, dict(type="status", status_type=status_type, status_value=status_value, status_description=status_description))
+    def _sendStatus(self, line, stream):
+        self._plugin_manager.send_plugin_message(self._identifier, dict(type="logline", line=line, stream=stream))
+
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
@@ -563,6 +547,7 @@ __plugin_name__ = "BigBoxFirmware"
 def __plugin_load__():
 	global __plugin_implementation__
 	__plugin_implementation__ = BigBoxFirmwarePlugin()
+    
 
 	global __plugin_hooks__
 	__plugin_hooks__ = {

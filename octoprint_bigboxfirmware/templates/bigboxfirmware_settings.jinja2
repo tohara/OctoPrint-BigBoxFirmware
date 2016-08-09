@@ -71,21 +71,21 @@
             <div class="control-group" data-bind="css: {error: editorNameInvalid()}">
                 <label class="control-label">Name</label>
                 <div class="controls">
-                    <input type="text" data-bind="value: editorName, valueUpdate: 'afterkeydown'">
+                    <input type="text" class="span6" data-bind="value: editorName, valueUpdate: 'afterkeydown'">
                     <span data-bind="visible: editorNameInvalid()"><br><span class="help-inline">Name must be set</span></span>
                 </div>
             </div>
             <div class="control-group" data-bind="css: {error: editorIdentifierInvalid()}">
                 <label class="control-label">Identifier</label>
                 <div class="controls">
-                    <input type="text" data-bind="value: editorIdentifier, valueUpdate: 'afterkeydown', enable: editorNew, css: {disabled: !editorNew()}, attr: {placeholder: editorIdentifierPlaceholder}">
+                    <input type="text" class="span6" data-bind="value: editorIdentifier, valueUpdate: 'afterkeydown', enable: editorNew, css: {disabled: !editorNew()}, attr: {placeholder: editorIdentifierPlaceholder}">
                     <span data-bind="visible: editorIdentifierInvalid()"><br><span class="help-inline" data-bind="text: editorIdentifierInvalidText()"></span></span>
                 </div>
             </div>
             <div class="control-group">
                 <label class="control-label">Info</label>
                 <div class="controls">
-                    <input type="text" data-bind="value: editorInfo">
+                    <input type="text" class="span6" data-bind="value: editorInfo">
                 </div>
             </div>
 			
@@ -93,14 +93,14 @@
 		        <label class="control-label" for="settings_plugin_bigboxfirmware_editDialog_github_repo">Github Repository</label>
 		        <div class="controls">
 		        	
-		            <select id="settings_plugin_bigboxfirmware_editDialog_github_repo" data-bind="options: editorUrlList, value: editorUrl"></select>
+		            <select class="span6" id="settings_plugin_bigboxfirmware_editDialog_github_repo" data-bind="options: editorUrlList, value: editorUrl"></select>
 		           
 		        </div>
 		    </div>
 		    <div class="control-group" title="Github repository branch">
 		        <label class="control-label" for="settings_plugin_bigboxfirmware_editDialog_github_branch">Branch</label>
 		        <div class="controls">
-		            <select id="settings_plugin_bigboxfirmware_editDialog_github_branch" data-bind="options: editorBranchList, value: editorBranch"></select>
+		            <select class="span6" id="settings_plugin_bigboxfirmware_editDialog_github_branch" data-bind="options: editorBranchList, value: editorBranch"></select>
 		        </div>
 		    </div>
             
