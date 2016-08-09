@@ -23,4 +23,4 @@ Under development and not yet tested on a BigBox!!!!!!!!!
 Install via the bundled [Plugin Manager](https://github.com/foosel/OctoPrint/wiki/Plugin:-Plugin-Manager)
 or manually using this URL:
 
-    https://github.com/tohara/OctoPrint-BigBoxFirmware/archive/RC7.zip
+    https://github.com/tohara/OctoPrint-BigBoxFirmware/archive/dev.zip
