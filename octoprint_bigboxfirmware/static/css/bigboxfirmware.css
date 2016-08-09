@@ -46,7 +46,7 @@
 	left: 45%;
 }
 
-table td.settings_plugin_bigboxfirmware__profiles_name, table th.settings_plugin_bigboxfirmware_profiles_name
+table td.settings_plugin_bigboxfirmware_profiles_name, table th.settings_plugin_bigboxfirmware_profiles_name
 	{
 	text-overflow: ellipsis;
 	text-align: left

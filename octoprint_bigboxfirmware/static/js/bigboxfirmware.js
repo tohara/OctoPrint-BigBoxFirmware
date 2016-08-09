@@ -15,21 +15,10 @@ $(function() {
         self.connection = parameters[2];
         self.printerState = parameters[3];
         
-        self.configPathAvrdude = ko.observable();
-        self.hexFileName = ko.observable(undefined);
-        self.hexFileURL = ko.observable(undefined);
-
-        self.alertMessage = ko.observable("");
-        self.alertType = ko.observable("alert-warning");
-        self.showAlert = ko.observable(false);
-        self.missingParamToFlash = ko.observable(false);
-        self.progressBarText = ko.observable();
+   
         self.isBusy = ko.observable(false);
         self.updateAvailable = ko.observable(false);
 
-        self.pathBroken = ko.observable(false);
-        self.pathOk = ko.observable(false);
-        self.pathText = ko.observable();
         
         self.myTitle = ko.observable("My Big Box");
         
@@ -51,8 +40,16 @@ $(function() {
         self.editorIdentifier = ko.observable();
         self.editorIdentifierPlaceholder = ko.observable();
         self.editorInfo = ko.observable();
-        self.editorIsDefault = ko.observable()
+        self.editorIsDefault = ko.observable();
         self.editorDefine = ko.observableArray(undefined);
+        self.editorUrl = ko.observable();
+        self.editorRepo = ko.observable();
+        self.editorBranch = ko.observable();
+        self.editorBranchList = ko.observableArray(undefined);
+        self.editorUrlList = ko.observableArray(undefined);
+        
+        self.repoUrlList = ko.observableArray(undefined);
+        self.repoEditorUrlList = ko.observableArray(undefined);
 
         self._cleanProfile = function() {
             return {
@@ -60,7 +57,9 @@ $(function() {
                 name: "",
                 info: "",
                 isDefault: false,
-                define: []
+                define: [],
+                url: '',
+                branch: ''
             }
         };
         
@@ -136,6 +135,15 @@ $(function() {
             self.editorIdentifierPlaceholder(self._sanitize(self.editorName()).toLowerCase());
         });
         
+        self.editorUrl.subscribe(function() {
+        	
+        	_.each(self.repoUrlList(), function(repo) {  
+        		if (repo.repoUrl == self.editorUrl()) {
+        			self.editorBranchList(repo.branchList);
+        		}
+            });
+        });
+        
         
         self.addProfile = function(callback) {
             var profile = self._editorData();
@@ -147,11 +155,12 @@ $(function() {
                 contentType: "application/json; charset=UTF-8",
                 data: JSON.stringify({profile: profile}),
                 success: function() {
-                    self.requestInProgress(false);
+                    
                     if (callback !== undefined) {
                         callback();
                     }
                     self.requestData();
+                    
                 },
                 error: function() {
                     self.requestInProgress(false);
@@ -169,8 +178,9 @@ $(function() {
                 type: "DELETE",
                 dataType: "json",
                 success: function() {
-                    self.requestInProgress(false);
+                    
                     self.requestData();
+                   
                 },
                 error: function() {
                     self.requestInProgress(false);
@@ -194,11 +204,12 @@ $(function() {
                 contentType: "application/json; charset=UTF-8",
                 data: JSON.stringify({profile: profile}),
                 success: function() {
-                    self.requestInProgress(false);
+                    
                     if (callback !== undefined) {
                         callback();
                     }
                     self.requestData();
+                    
                 },
                 error: function() {
                     self.requestInProgress(false);
@@ -221,6 +232,8 @@ $(function() {
                     });
                 		
                     self.profiles.updateItems(items);
+                    self.repoUrlList(data.repos);
+                    self.requestInProgress(false);
                 	
                 }
             });       
@@ -245,6 +258,13 @@ $(function() {
             }
             
             
+            self.editorUrlList.removeAll();
+        	_.each(self.repoUrlList(), function(repo) {  
+        		console.log('add repo url:');
+        		console.log(repo.repoUrl);
+        		self.editorUrlList.push(repo.repoUrl);
+        		
+            });
             
             self.editorNew(add);
             
@@ -253,13 +273,17 @@ $(function() {
             self.editorInfo(data.info);
             self.editorDefine(data.define);
             self.editorIsDefault(data.isDefault)
+            self.editorUrl(data.url);
+            self.editorBranch(data.branch);
            
             
+           
             
             
             var editDialog = $("#settings_plugin_bigboxfirmware_editDialog");
             var confirmButton = $("button.btn-confirm", editDialog);
             var dialogTitle = $("h3.modal-title", editDialog);
+                      
           
 
             dialogTitle.text(add ? gettext("Add Firmware Profile") : _.sprintf(gettext("Edit Firmware Profile \"%(name)s\""), {name: data.name}));
@@ -294,8 +318,10 @@ $(function() {
                 id: identifier,
                 name: self.editorName(),
                 info: self.editorInfo(),
-                define : self.editorDefine()
-                
+                define : self.editorDefine(),
+                url: self.editorUrl(),
+                branch: self.editorBranch()
+                               
             }
 
             return profile;
@@ -310,6 +336,119 @@ $(function() {
 
         self.removeDefine= function(profile) {
             self.editorDefine.remove(profile);
+        };
+        
+        
+        self.showRepoDialog = function() {
+           
+            
+            var repoDialog = $("#settings_plugin_bigboxfirmware_repoDialog");
+            var confirmButton = $("button.btn-confirm", repoDialog);
+            var dialogTitle = $("h3.modal-title", repoDialog);
+            
+            self.repoEditorUrlList(self.repoUrlList.slice());
+          
+
+            dialogTitle.text("Github Firmware sources");
+            confirmButton.unbind("click");
+            confirmButton.bind("click", function() {
+                
+                    self.confirmRepo();
+                
+            });
+            repoDialog.modal("show");
+        };
+        
+        self.addRepo = function() {
+        	
+            self.repoEditorUrlList.push({repoUrl: "https://", add: true, branchList: []});
+    
+        };
+        
+        self.removeRepo = function(repo) {
+        	console.log(repo);
+        	var repoInUse = self.profiles.getItem(function(item) {return item.url == repo.repoUrl});
+        	if (repoInUse && repo.repoUrl != '') {
+        		new PNotify({
+                    title: "Remove Repo Source",
+                    text: "Repo is used by a profile and can not be removed",
+                    
+                    buttons: {
+                        closer: true,
+                        sticker: false
+                    },
+                    hide: true,
+                    type: 'error'
+                })
+        	} else {
+        		self.repoEditorUrlList.remove(repo);
+        		        		
+        	}
+        };
+        
+        self.updateRepo = function(repo) {
+        	console.log('Update:');
+        	console.log(repo);
+//        	self.repoEditorUrlList.remove(repo);
+//        	self.repoEditorUrlList.push({repoUrl: repo.repoUrl, add: true, branchList: []});
+        	
+        	if (repo.add) {
+        		var text = "Github repository need to be saved before it can be updated!";
+        		new PNotify({title: "Update failed", text: text, type: "error", hide: true});
+        		return;
+        	}
+        	
+        	self.requestInProgress(true);
+        	self._markWorking('Update GitHub Repositories', 'Updating: ' + repo.repoUrl);
+        	
+        	$.ajax({
+                url: PLUGIN_BASEURL + "bigboxfirmware/updateRepos/",
+                type: "PATCH",
+                dataType: "json",
+                contentType: "application/json; charset=UTF-8",
+                data: JSON.stringify({repo: repo}),
+                success: function() {
+                    
+                    self.requestData();
+                    
+                    self._markDone();
+                },
+                error: function() {
+                    self.requestInProgress(false);
+                    var text = "There was unexpected error while updating repos.";
+                    new PNotify({title: "Update failed", text: text, type: "error", hide: true});
+                    self._markDone();
+                }
+            });
+            
+        };
+        
+        self.confirmRepo = function() {
+        	self.requestInProgress(true);
+        	self._markWorking('Update GitHub Repositories', 'Starting....');
+        	
+        	$.ajax({
+                url: PLUGIN_BASEURL + "bigboxfirmware/updateRepos/",
+                type: "POST",
+                dataType: "json",
+                contentType: "application/json; charset=UTF-8",
+                data: JSON.stringify({repoUrlList: self.repoEditorUrlList()}),
+                success: function() {
+                    
+                    $("#settings_plugin_bigboxfirmware_repoDialog").modal("hide");
+                    self.requestData();
+                    
+                    self._markDone();
+                },
+                error: function() {
+                    self.requestInProgress(false);
+                    var text = "There was unexpected error while saving repos.";
+                    new PNotify({title: "Saving failed", text: text, type: "error", hide: true});
+                    self._markDone();
+                }
+            });
+        	
+        	
         };
         
         self._sanitize = function(name) {

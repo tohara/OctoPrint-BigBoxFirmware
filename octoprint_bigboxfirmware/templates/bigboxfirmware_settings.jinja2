@@ -43,8 +43,23 @@
 </div>
 
 <div class="row-fluid">
+<button class="btn pull-left" data-bind="click: function() { $root.showRepoDialog(); }">Manage Repo's...</button>
 <button class="btn pull-right" data-bind="click: function() { $root.showEditProfileDialog(); }">Add Profile...</button>
 </div>
+
+<div id="settings_plugin_bigboxfirmware_printer_settings">
+	<h4>Printer Settings</h4>
+	
+	<div class="control-group" title="Select the serial port where your printer is connected">
+	    <label class="control-label">Serial Port</label>
+	    <div class="controls">
+	        <select data-bind="options: connection.portOptions, value: connection.selectedPort, css: {disabled: !connection.isErrorOrClosed() || isBusy()}, enable: connection.isErrorOrClosed() && loginState.isUser() && !isBusy()"></select>
+	    </div>
+	</div>
+</div>
+
+
+
 
 <div id="settings_plugin_bigboxfirmware_editDialog" class="modal hide fade">
     <div class="modal-header">
@@ -73,6 +88,22 @@
                     <input type="text" data-bind="value: editorInfo">
                 </div>
             </div>
+			
+		    <div class="control-group" title="URL to github repository for template Marlin source">
+		        <label class="control-label" for="settings_plugin_bigboxfirmware_editDialog_github_repo">Github Repository</label>
+		        <div class="controls">
+		        	
+		            <select id="settings_plugin_bigboxfirmware_editDialog_github_repo" data-bind="options: editorUrlList, value: editorUrl"></select>
+		           
+		        </div>
+		    </div>
+		    <div class="control-group" title="Github repository branch">
+		        <label class="control-label" for="settings_plugin_bigboxfirmware_editDialog_github_branch">Branch</label>
+		        <div class="controls">
+		            <select id="settings_plugin_bigboxfirmware_editDialog_github_branch" data-bind="options: editorBranchList, value: editorBranch"></select>
+		        </div>
+		    </div>
+            
             
         </form>    
 		<form class="form-horizontal">
@@ -118,19 +149,53 @@
 </div>
 
 
-
-
-
-<div id="settings_plugin_bigboxfirmware_printer_settings">
-	<h4>Printer Settings</h4>
-	
-	<div class="control-group" title="Select the serial port where your printer is connected">
-	    <label class="control-label">Serial Port</label>
-	    <div class="controls">
-	        <select data-bind="options: connection.portOptions, value: connection.selectedPort, css: {disabled: !connection.isErrorOrClosed() || isBusy()}, enable: connection.isErrorOrClosed() && loginState.isUser() && !isBusy()"></select>
-	    </div>
-	</div>
+<div id="settings_plugin_bigboxfirmware_repoDialog" class="modal hide fade">
+    <div class="modal-header">
+        <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
+        <h3 class="modal-title"></h3>
+    </div>
+    <div class="modal-body">  
+		<form class="form-horizontal">
+             <div class="row-fluid">
+             	<div class="span5"><h4>Repository URL</h4></div>
+				
+    		</div>
+            <div data-bind="foreach: repoEditorUrlList">
+		        <div class="row-fluid" style="margin-bottom: 5px">
+		            <div class="span10">
+		                <input type="text" class="span12 text-left" data-bind="value: repoUrl, enable: add, css: {disabled: !add}">
+		            </div>
+		            
+		            
+		           
+		            <div class="span1">
+		                <a title="Force Update Repo" class="btn btn-danger" data-bind="click: $root.updateRepo"><i class="icon-refresh"></i></a>
+		            </div>
+		            <div class="span1">
+		                <a title="Remove Repo" class="btn btn-danger" data-bind="click: $root.removeRepo"><i class="icon-trash"></i></a>
+		            </div>
+		        </div>
+		    </div>
+		    <div class="row-fluid">
+		        <div class="offset11 span1">
+		            <a title="Add Repo" class="btn btn-primary" data-bind="click: $root.addRepo"><i class="icon-plus"></i></a>
+		        </div>
+		    </div>
+    
+    
+       
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Abort</button>
+        <button class="btn btn-primary btn-confirm" data-bind="enabled: true, css: {disabled: false}"><i class="icon-spinner icon-spin" data-bind="visible: requestInProgress()"></i>Confirm</button>
+    </div>
 </div>
+
+
+
+
+
 
 
 

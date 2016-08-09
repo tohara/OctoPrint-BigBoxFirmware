@@ -7,12 +7,14 @@ import json
 import os
 
 import octoprint.plugin
+import httplib2
 
 import octoprint.server.util.flask
 from octoprint.server import admin_permission
 from octoprint.events import Events
 from subprocess import call, Popen, PIPE
 import threading
+import time
 
 
 
@@ -220,7 +222,9 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 profile['isDefault'] = True
                 returnDict[profile['id']] = profile
                 
-        return flask.jsonify(profiles=returnDict)
+        repos = self.getRepos()
+                
+        return flask.jsonify(profiles=returnDict, repos=repos)
     
     @octoprint.plugin.BlueprintPlugin.route("/install", methods=["POST"])
     @octoprint.server.util.flask.restricted_access
@@ -306,12 +310,169 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
        
        
         return flask.make_response("", 204)
+    
+    @octoprint.plugin.BlueprintPlugin.route("/updateRepos/", methods=["POST"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def saveRepos(self):
+        data_folder = self.get_plugin_data_folder()
+        repo_folder = data_folder + '/repos'
+        
+        if not os.path.isdir(repo_folder):
+            os.mkdir(repo_folder)
             
+        repoList = flask.request.json['repoUrlList']
+        
+        for exsitingRepo in self.getRepos():
+            if exsitingRepo not in repoList:
+                repoUserFolder = repo_folder + '/' + self.getRepoUser(exsitingRepo['repoUrl'])
+                #print 'Going to delete:', exsitingRepo['repoUrl']
+                self.execute(['rm', '-rfv', self.getRepoName(exsitingRepo['repoUrl'])], cwd= repoUserFolder)
+        
+        for repo in repoList:
+            
+            if repo['add']:
+                if self.isValidGithubRepo(repo['repoUrl']):
+                    repoUserFolder = repo_folder + '/' + self.getRepoUser(repo['repoUrl'])
+                    
+                    if not os.path.exists(repoUserFolder):
+                        os.mkdir(repoUserFolder)
+                        
+                    
+                    self.execute(['git', 'clone', '-v', '--progress', repo['repoUrl']], cwd= repoUserFolder)
+            
+                
+                
+        
+        
+        
+        
+#         print '****************Output from addNewProfile:*************************'
+#         print flask.request.json
+#         for i in flask.request.json['profile']:
+#             print i
+#         print type(flask.request.json)
+       
+       
+        return flask.make_response("", 204)
+    
+    @octoprint.plugin.BlueprintPlugin.route("/updateRepos/", methods=["PATCH"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def updateRepos(self):
+        data_folder = self.get_plugin_data_folder()
+        repo_folder = data_folder + '/repos'
+        
+        if not os.path.isdir(repo_folder):
+            os.mkdir(repo_folder)
+            
+        repo = flask.request.json['repo']
+        repoUrl = repo['repoUrl']
+        repoPath = repo_folder + '/' + self.getRepoUser(repoUrl) + '/' + self.getRepoName(repoUrl)
+        
+        self._plugin_manager.send_plugin_message(self._identifier,
+                                                     dict(type="logline",
+                                                          line= 'Pull changes from remote:' + repoUrl,
+                                                          stream='stdout'))
+        
+        self.execute(['git', 'pull', '-f'], cwd= repoPath)
+       
+       
+        return flask.make_response("", 204)
+            
+    def getRepos(self):
+        data_folder = self.get_plugin_data_folder()
+        repo_folder = data_folder + '/repos'
+        
+        if not os.path.isdir(repo_folder):
+            os.mkdir(repo_folder)
+            
+        repoUserList = os.listdir(repo_folder)
+        repoList = []
+        for repoUser in repoUserList:
+            for repo in os.listdir(repo_folder + '/' + repoUser):
+                gitInfo = self.getGitInfo(repo_folder + '/' + repoUser + '/' + repo)
+                if not gitInfo == None:
+                    gitInfo['add'] = False
+                    repoList.append(gitInfo) 
+                
+        
+        return repoList
+        
+    def getGitInfo(self, path):
+        # * remote origin
+        #   Fetch URL: https://github.com/tohara/OctoPrint-BigBoxFirmware.git
+        #   Push  URL: https://github.com/tohara/OctoPrint-BigBoxFirmware.git
+        #   HEAD branch: (not queried)
+        #   Remote branches: (status not queried)
+        #     RC6
+        #     RC6dev
+        #     RC7
+        #     dev
+        #   Local branch configured for 'git pull':
+        #     RC6 merges with remote RC6
+        #   Local ref configured for 'git push' (status not queried):
+        #     (matching) pushes to (matching)
+
+        gitCall = Popen(['git', 'remote', 'show', '-n', 'origin'], stdout=PIPE, cwd=path)
+        res, err = gitCall.communicate()
+        
+        #print 'Form getGitInfo: ', res, err, path
+        
+        retDict = {}
+        retDict['repoUrl'] = ''
+        retDict['branchList'] = []
+        branchTrigger = False
+        
+        for line in res.split('\n'):
+            if 'Fetch URL:' in line:
+                retDict['repoUrl'] = line.replace('Fetch URL:', '').strip()
+            
+            if 'Local branch' in line: 
+                branchTrigger = False
+                
+            if branchTrigger:
+                retDict['branchList'].append(line.strip())
+            
+            
+            if 'Remote branch' in line: 
+                branchTrigger = True
+            
+        return retDict if self.isValidGithubRepo(retDict['repoUrl'], False) else None
+    
+        
+    def isValidGithubRepo(self, repoUrl, checkOnline=True):
+        
+        valid = False
+        
+        if 'https://' == repoUrl[0:8] and '.git' == repoUrl[-4:]:
+            if checkOnline:
+                h = httplib2.Http()
+                resp = h.request(repoUrl)
+                valid = int(resp[0]['status']) < 400
+            else:
+                valid = True
+        
+        if not valid:
+            self._plugin_manager.send_plugin_message(self._identifier,
+                                                     dict(type="logline",
+                                                          line= repoUrl + ' is not a valid Github repo or no internet connection.',
+                                                          stream='stderr'))
+        
+        return valid
+    
+    def getRepoUser(self, repoUrl):
+        
+        return repoUrl.replace('https://', '').split('/')[1]
+    
+    def getRepoName(self, repoUrl):
+        
+        return repoUrl.replace('https://', '').split('/')[2].replace('.git', '').strip()
 
     def execute(self, args, **kwargs):
         
         pswd = kwargs.pop('pswd', None)
-        res = Popen(args, stdout=PIPE, stderr=PIPE,  **kwargs)
+        res = Popen(args, stdout=PIPE, stderr=PIPE, universal_newlines=True, **kwargs)
         
         if pswd:
             res.stdin.write(pswd + '\n')
@@ -322,11 +483,14 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         def stdoutListener():
             for line in linesStdout:
+                #print 'stdout:', line
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="logline", line=line.replace('\n', ''), stream='stdout'))
                 
         def stderrListener():
             for line in linesStderr:
+                #print 'stderr:', line
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="logline", line=line.replace('\n', ''), stream='stderr'))
+                
             
         
         stdoutThread = threading.Thread(target=stdoutListener)
@@ -336,8 +500,11 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         stderrThread = threading.Thread(target=stderrListener)
         stderrThread.daemon = False
         stderrThread.start()
+        
             
+        #print 'Waiting for error thread'   
         stderrThread.join()
+        #print 'Waiting for stdout thread' 
         stdoutThread.join()
         
                      
@@ -375,7 +542,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 				type="github_release",
 				user="tohara",
 				repo="OctoPrint-BigBoxFirmware",
-                branch="RC6",
+                #branch="RC6",
 				current=self._plugin_version,
 
 				# update method: pip
