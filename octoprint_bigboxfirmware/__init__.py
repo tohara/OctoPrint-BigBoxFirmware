@@ -46,7 +46,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     def make_marlin(self):
         
         avrdudePath = '/usr/bin/avrdude'
-        selectedPort = flask.request.json['selected_port']
+        selectedPort = flask.request.json['selected_port'] if flask.request.json.has_key('selected_port') else ''
         profileId = flask.request.json['profileId']
         dataFolder = self.get_plugin_data_folder()
         buildFolder = dataFolder + '/tmp'
@@ -78,27 +78,31 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         self.execute(['make', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath], cwd=marlinFolder)
   
-        hexFileExist = os.path.exists(hexPath)
         
-        if not hexFileExist:
-            self._sendStatus(line='Something went wrong. Hex file does not exist!', stream='stderr')
-            return flask.make_response("Error", 500)
-        else:
+        if os.path.exists(hexPath):
+
             self._sendStatus(line='Marlin.hex found! Proceeding to flash with avrdude.', stream='message')
         
-        self._printer.disconnect()   
+            self._printer.disconnect()   
+            
+            avrdude_command = [avrdudePath, "-v", "-p", "m2560", "-c", "wiring", "-P", selectedPort, "-U", "flash:w:" + hexPath + ":i", "-D"]
+             
+            self._sendStatus(line='Command: ' + ' '.join(avrdude_command), stream='stdout')
+            
+            if selectedPort in ('VIRTUAL', 'AUTO', ''): 
+                
+                self._sendStatus(line='Selected port: ' + selectedPort + ' can not be used!', stream='stderr')
+            else: 
+                self._printer.disconnect() 
+                self.execute(avrdude_command, cwd=os.path.dirname(avrdudePath))        
+                self._printer.connect(port=selectedPort)
          
-        avrdude_command = [avrdudePath, "-v", "-p", "m2560", "-c", "wiring", "-P", selectedPort, "-U", "flash:w:" + hexPath + ":i", "-D"]
-         
-        self._sendStatus(line='Command: ' + ' '.join(avrdude_command), stream='stdout')
-         
-        self.execute(avrdude_command, cwd=os.path.dirname(avrdudePath))
-         
+        else:   
+            self._sendStatus(line='Something went wrong. Hex file does not exist!', stream='stderr')
+            
         self._sendStatus(line='Cleaning up build files....', stream='message')
-         
+             
         self.execute(['make', 'clean', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath], cwd=marlinFolder)
-         
-        self._printer.connect(port=selectedPort)
 
  
         return flask.make_response("Ok.", 200)
