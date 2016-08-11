@@ -254,6 +254,10 @@ $(function() {
         
         self.showEditProfileDialog = function(data, add) {
             
+        	if (add == undefined) {
+        		add = false;
+        	}
+        	
             if (data == undefined) {
                 data = self._cleanProfile();
                 add = true;
