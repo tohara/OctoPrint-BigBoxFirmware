@@ -105,7 +105,7 @@ SRC = wiring.c \
 	u8g_page.c u8g_pb.c u8g_state.c
 	
 
-CXXSRC = WMath.cpp WString.cpp Print.cpp Marlin_main.cpp	\
+CXXSRC ?= WMath.cpp WString.cpp Print.cpp Marlin_main.cpp	\
 	MarlinSerial.cpp Sd2Card.cpp SdBaseFile.cpp SdFatUtil.cpp	\
 	SdFile.cpp SdVolume.cpp planner.cpp stepper.cpp \
 	temperature.cpp cardreader.cpp configuration_store.cpp \

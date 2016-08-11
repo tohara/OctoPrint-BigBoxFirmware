@@ -75,8 +75,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 
         self._sendStatus(line='Building Marlin................', stream='message')
         
-        
-        self.execute(['make', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath], cwd=marlinFolder)
+        #TODO: Temporary fix to be able to use RC6 and RC7 source. Need to get this done properly by the makefile
+        self.execute(['make', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath, 'CXXSRC=' + self.getMakeDep(marlinFolder)], cwd=marlinFolder)
   
         
         if os.path.exists(hexPath):
@@ -107,7 +107,33 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
  
         return flask.make_response("Ok.", 200)
         
-    
+        
+    def getMakeDep(self, marlinFolder):
+        #TODO: Temporary fix to be able to use RC6 and RC7 source. Need to get this done properly by the makefile
+        depRC6 = 'WMath.cpp WString.cpp Print.cpp Marlin_main.cpp    \
+                MarlinSerial.cpp Sd2Card.cpp SdBaseFile.cpp SdFatUtil.cpp    \
+                SdFile.cpp SdVolume.cpp planner.cpp stepper.cpp \
+                temperature.cpp cardreader.cpp configuration_store.cpp \
+                watchdog.cpp SPI.cpp servo.cpp Tone.cpp ultralcd.cpp digipot_mcp4451.cpp \
+                dac_mcp4728.cpp vector_3.cpp qr_solve.cpp stopwatch.cpp \
+                mesh_bed_leveling.cpp buzzer.cpp LiquidCrystal.cpp main.cpp'
+                
+        depRC7 = 'WMath.cpp WString.cpp Print.cpp Marlin_main.cpp    \
+                MarlinSerial.cpp Sd2Card.cpp SdBaseFile.cpp SdFatUtil.cpp    \
+                SdFile.cpp SdVolume.cpp planner.cpp stepper.cpp \
+                temperature.cpp cardreader.cpp configuration_store.cpp \
+                watchdog.cpp SPI.cpp servo.cpp Tone.cpp ultralcd.cpp digipot_mcp4451.cpp \
+                dac_mcp4728.cpp vector_3.cpp qr_solve.cpp endstops.cpp stopwatch.cpp \
+                mesh_bed_leveling.cpp utility.cpp LiquidCrystal.cpp main.cpp'
+                
+        if 'endstops.cpp' in os.listdir(marlinFolder):
+            return depRC7
+        else:
+            return depRC6
+                
+        
+                
+                
     def writeMarlinConfig(self, profile, marlinFolder):
         templates = ('Configuration.h', 'Configuration_adv.h')
         processedIds = []
