@@ -1,7 +1,7 @@
 # OctoPrint-BigBoxFirmware 
 
 Plugin to enable and disable features in the firmware and compile and flash using OctoPi. <br>
-Under development and not yet tested on a BigBox!!!!!!!!!
+
 
 ### Parameters:
 		Each entry represents a #define variable from Configuration.h or Configuration_adv.h.
@@ -23,4 +23,4 @@ Under development and not yet tested on a BigBox!!!!!!!!!
 Install via the bundled [Plugin Manager](https://github.com/foosel/OctoPrint/wiki/Plugin:-Plugin-Manager)
 or manually using this URL:
 
-    https://github.com/tohara/OctoPrint-BigBoxFirmware/archive/dev.zip
+    https://github.com/tohara/OctoPrint-BigBoxFirmware/archive/master.zip
