@@ -252,7 +252,7 @@ $(function() {
         	self.showEditProfileDialog(dataCopy, true);
         };
         
-        self.showEditProfileDialog = function(data, add=false) {
+        self.showEditProfileDialog = function(data, add) {
             
             if (data == undefined) {
                 data = self._cleanProfile();
