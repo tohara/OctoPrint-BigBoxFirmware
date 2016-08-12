@@ -326,7 +326,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         repoList = flask.request.json['repoUrlList']
         
         for exsitingRepo in self.getRepos():
-            if exsitingRepo not in repoList:
+            if exsitingRepo['repoUrl'] not in map(lambda x: x['repoUrl'], repoList):
                 repoUserFolder = self.getRepoUserPath(exsitingRepo['repoUrl'])
                 #print 'Going to delete:', exsitingRepo['repoUrl']
                 self.execute(['rm', '-rfv', self.getRepoName(exsitingRepo['repoUrl'])], cwd= repoUserFolder)
