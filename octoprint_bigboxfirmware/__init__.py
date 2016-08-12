@@ -353,6 +353,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         self._sendStatus(line= 'Pull changes from remote:' + repoUrl, stream='stdout')
         
+        self.execute(['git', 'checkout', '-f'], cwd= repoNamePath) # Throw away any changes before pull
         self.execute(['git', 'pull', '-f'], cwd= repoNamePath)
        
        
