@@ -241,6 +241,12 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     
     def updateDefineLib(self, defineLib, profile):
         
+        if defineLib.has_key(profile['url']):
+            if defineLib[profile['url']].has_key(profile['branch']):
+                return
+        else:
+            defineLib[profile['url']] =  {}
+            
         try:
             repoPath = self.getRepoNamePath(profile['url'])
             marlinFolder = repoPath + '/Marlin'
@@ -255,15 +261,6 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         templates = ('Configuration.h', 'Configuration_adv.h')
         defList = []
         
-        
-        if defineLib.has_key(profile['url']):
-            if defineLib[profile['url']].has_key(profile['branch']):
-                return
-        else:
-            defineLib[profile['url']] =  {}
-            
-            
-                
         
         def insertDefine(splittedLine):
             
