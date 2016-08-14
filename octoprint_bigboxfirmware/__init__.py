@@ -277,7 +277,30 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
        
        
         return flask.make_response("", 204)            
-    
+ 
+    @octoprint.plugin.BlueprintPlugin.route("/import_profile", methods=["POST"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def importProfile(self):
+        
+        inputName = "file"
+        inputUploadPath = inputName + "." + self._settings.global_get(["server", "uploads", "pathSuffix"])
+
+        if inputUploadPath not in flask.request.values:       
+            return flask.make_response("Error.", 500)
+
+        uploadProfilePath = flask.request.values[inputUploadPath]
+       
+        try:
+            with open(uploadProfilePath, 'r+b') as f:
+                profile = eval(f.read())['profile']
+        except:
+            return flask.make_response("Error.", 415)
+   
+       
+        return flask.jsonify(profile)     
+        
+        
     @octoprint.plugin.BlueprintPlugin.route("/firmwareprofiles/<string:identifier>", methods=["DELETE"])
     @octoprint.server.util.flask.restricted_access
     @octoprint.server.admin_permission.require(403)
@@ -563,6 +586,20 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 			)
 		)
         
+    def route_hook(self, server_routes, *args, **kwargs):
+        from octoprint.server.util.tornado import LargeResponseHandler
+        
+        def mime_type_guesser(path):
+            from octoprint.filemanager import get_mime_type
+            return get_mime_type(path)
+
+        return [
+            (r"/export_profile/(.*)", LargeResponseHandler, dict(path=self.get_plugin_data_folder() + '/profiles',
+                                                           as_attachment=True,
+                                                           mime_type_guesser=mime_type_guesser))
+                
+           
+        ]
     
     #~~ Extra methods
     def _sendStatus(self, line, stream):
@@ -582,6 +619,7 @@ def __plugin_load__():
 
 	global __plugin_hooks__
 	__plugin_hooks__ = {
-		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
+		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
+        "octoprint.server.http.routes": __plugin_implementation__.route_hook
 	}
 

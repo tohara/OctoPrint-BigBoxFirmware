@@ -241,7 +241,7 @@ $(function() {
                 }
             });       
      
-        }
+        };
         
         self.duplicateProfile = function(data) {
         	
@@ -288,9 +288,39 @@ $(function() {
             var editDialog = $("#settings_plugin_bigboxfirmware_editDialog");
             var confirmButton = $("button.btn-confirm", editDialog);
             var dialogTitle = $("h3.modal-title", editDialog);
-                      
-          
-
+            
+            var profileImportFile = $("#settings_plugin_bigboxfirmware_profile_import", editDialog);
+            
+            
+            profileImportFile.fileupload({
+                maxNumberOfFiles: 1,
+                autoUpload: true,
+                success: function(data) {
+                    self.editorName(data.name);
+                    self.editorInfo(data.info);
+                    self.editorDefine(data.define);
+                    self.editorUrl(data.url);
+                    self.editorBranch(data.branch);
+                						
+                },
+                error: function () {
+                	new PNotify({
+                        title: "Import Profile",
+                        text: "Not able to import the selected profile!",
+                        
+                        buttons: {
+                            closer: true,
+                            sticker: false
+                        },
+                        hide: true,
+                        type: 'error'
+                    });
+                	
+                }
+                
+            });
+            
+              
             dialogTitle.text(add ? gettext("Add Firmware Profile") : _.sprintf(gettext("Edit Firmware Profile \"%(name)s\""), {name: data.name}));
             confirmButton.unbind("click");
             confirmButton.bind("click", function() {
@@ -300,6 +330,7 @@ $(function() {
             });
             editDialog.modal("show");
         };
+        
         
         self.confirmEditProfile = function(add) {
             var callback = function() {
@@ -471,27 +502,7 @@ $(function() {
            
            
         };
-        
-        self.testNotify = function() {
-        	new PNotify({
-                title: "test123",
-                text: "testtext 123",
-                confirm: {
-                    confirm: true,
-                    buttons: [{
-                        text: "button text",
-                        click: function () {
-                            
-                        }
-                    }]
-                },
-                buttons: {
-                    closer: false,
-                    sticker: false
-                },
-                hide: false
-            })
-        }
+ 
         
         self._markWorking = function(title, line) {
             self.working(true);
@@ -581,7 +592,6 @@ $(function() {
         
         self.checkInstalledDep = function() {
            	
-        
             $.ajax({
                 url: PLUGIN_BASEURL + "bigboxfirmware/check_dep",
                 type: "POST",
@@ -594,22 +604,12 @@ $(function() {
                 	
                 	if (result.responseJSON.isInstalled) {
                 		self.depInstalled(true);
-                		
-                		
-                	} 
                 	
+                	} 
                 }
             });
         };
-        
-//        self.onSettingsShown = function() {
-////        	console.log("Startup completedasdfasfd");
-//        	if (!self.depInstalled()) {
-//        		self.checkInstalledDep();
-//        	}	
-//        }
-        
-        
+   
 
     }
 

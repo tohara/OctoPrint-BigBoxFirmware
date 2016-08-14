@@ -143,6 +143,17 @@
         </form>
     </div>
     <div class="modal-footer">
+    
+         
+        <span class="btn input-group-btn fileinput-button" data-bind="visible: $root.editorNew()">
+            <span>Import...</span>
+            <input id="settings_plugin_bigboxfirmware_profile_import" type="file" name="file" accept="" data-url="/plugin/bigboxfirmware/import_profile">
+        </span>
+        
+         <span class="pull-left" data-bind="visible: !$root.editorNew()">
+            <a class="btn " data-bind="attr:{href: '/plugin/bigboxfirmware/export_profile/' + $root.editorIdentifier()}">Export...</a>
+        </span>
+         
         <button class="btn" data-dismiss="modal" aria-hidden="true">Abort</button>
         <button class="btn btn-primary btn-confirm" data-bind="enabled: enableEditorSubmitButton, css: {disabled: !enableEditorSubmitButton()}"><i class="icon-spinner icon-spin" data-bind="visible: requestInProgress()"></i>Confirm</button>
     </div>
