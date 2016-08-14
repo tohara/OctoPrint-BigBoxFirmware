@@ -226,16 +226,79 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         _,_,fileList = os.walk(profile_folder).next()
         
         returnDict = {}
+        defineLib = {}
         for pFile in fileList:
             with open(profile_folder +'/'+ pFile, 'r+b') as f:
                 profile = eval(f.read())['profile']
 #                 profile['isDefault'] = False
                 returnDict[profile['id']] = profile 
-       
+                self.updateDefineLib(defineLib, profile)
+                       
                 
         repos = self.getRepos()
                 
-        return flask.jsonify(profiles=returnDict, repos=repos)
+        return flask.jsonify(profiles=returnDict, repos=repos, defineLib = defineLib)
+    
+    def updateDefineLib(self, defineLib, profile):
+        
+        try:
+            repoPath = self.getRepoNamePath(profile['url'])
+            marlinFolder = repoPath + '/Marlin'
+            self.execute(['git', 'checkout', '-f', profile['branch']], cwd= repoPath)
+        except:
+            return
+        
+        if not os.path.exists(marlinFolder):
+            return
+            
+        
+        templates = ('Configuration.h', 'Configuration_adv.h')
+        defList = []
+        
+        
+        if defineLib.has_key(profile['url']):
+            if defineLib[profile['url']].has_key(profile['branch']):
+                return
+        else:
+            defineLib[profile['url']] =  {}
+            
+            
+                
+        
+        def insertDefine(splittedLine):
+            
+            sp = splittedLine.strip().split()
+            identifier = sp[1]
+                
+                
+            if identifier not in defList:
+                defList.append(identifier)
+               
+            
+        for template in templates:
+            tempFile = open(marlinFolder + '/' + template, 'r')
+            
+            
+            for line in tempFile.readlines():
+                
+                splitted = line.split('//', 2)
+                
+                if splitted[0].strip()[:7] == '#define':
+                    insertDefine(splitted[0])
+                    continue
+                
+                elif len(splitted) >= 2:
+                    if splitted[1].strip()[:7] == '#define':
+                        insertDefine(splitted[1])
+                        continue
+                    
+            
+            tempFile.close()
+            
+            
+        defineLib[profile['url']][profile['branch']] = defList
+        
+        
     
     @octoprint.plugin.BlueprintPlugin.route("/install", methods=["POST"])
     @octoprint.server.util.flask.restricted_access

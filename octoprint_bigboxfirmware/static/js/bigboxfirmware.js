@@ -47,6 +47,7 @@ $(function() {
         self.editorBranch = ko.observable();
         self.editorBranchList = ko.observableArray(undefined);
         self.editorUrlList = ko.observableArray(undefined);
+        self.defineLib = ko.observableArray(undefined);
         
         self.repoUrlList = ko.observableArray(undefined);
         self.repoEditorUrlList = ko.observableArray(undefined);
@@ -236,6 +237,7 @@ $(function() {
                 		
                     self.profiles.updateItems(items);
                     self.repoUrlList(data.repos);
+                    self.defineLib(data.defineLib);
                     self.requestInProgress(false);
                 	
                 }
@@ -251,6 +253,31 @@ $(function() {
         	
         	self.showEditProfileDialog(dataCopy, true);
         };
+        
+        self.defineSortFunc = function(a, b) {
+            try {
+            	indexA = self.defineLib()[self.editorUrl()][self.editorBranch()].indexOf(a["identifier"]);
+            	indexB = self.defineLib()[self.editorUrl()][self.editorBranch()].indexOf(b["identifier"]);
+            }
+        	catch (err) {
+        		return 0;
+        	}
+        	
+            return indexA - indexB;
+        };
+        
+        self.defineCheckExist = function(define) {
+        	try {
+        		define['missing'] = self.defineLib()[self.editorUrl()][self.editorBranch()].indexOf(define['identifier']) == -1;
+        	}
+        	catch (err) {
+        		define['missing'] = true;
+        	}
+        	
+        	return define;
+        	
+        };
+        
         
         self.showEditProfileDialog = function(data, add) {
             
@@ -277,12 +304,9 @@ $(function() {
             self.editorIdentifier(data.id);
             self.editorName(data.name);
             self.editorInfo(data.info);
-            self.editorDefine(data.define);
             self.editorUrl(data.url);
             self.editorBranch(data.branch);
-           
-            
-           
+            self.editorDefine(data.define.sort(self.defineSortFunc).map(self.defineCheckExist));
             
             
             var editDialog = $("#settings_plugin_bigboxfirmware_editDialog");
@@ -298,9 +322,16 @@ $(function() {
                 success: function(data) {
                     self.editorName(data.name);
                     self.editorInfo(data.info);
-                    self.editorDefine(data.define);
+//                    self.editorDefine(data.define);
                     self.editorUrl(data.url);
                     self.editorBranch(data.branch);
+                    self.editorDefine(data.define.map(function(define){
+                    	
+                    	define['missing'] = false;
+                    	return define;
+                    	
+                    	}
+                    ));
                 						
                 },
                 error: function () {
@@ -354,7 +385,10 @@ $(function() {
                 id: identifier,
                 name: self.editorName(),
                 info: self.editorInfo(),
-                define : self.editorDefine(),
+                define : self.editorDefine().map(function(obj) {
+                	delete obj.missing;
+                	return obj;
+                }),
                 url: self.editorUrl(),
                 branch: self.editorBranch()
                                
@@ -365,7 +399,7 @@ $(function() {
         
         self.addDefine = function() {
         	
-            self.editorDefine.push({identifier: "identifier", enabled: false, value: ""});
+            self.editorDefine.push({identifier: "identifier", enabled: false, value: "", missing: false});
     
            
         };
