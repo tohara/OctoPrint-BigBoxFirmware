@@ -14,9 +14,7 @@ $(function() {
         self.loginState = parameters[1];
         self.connection = parameters[2];
         self.printerState = parameters[3];
-        
-   
-        self.isBusy = ko.observable(false);
+     
         self.updateAvailable = ko.observable(false);
 
         
@@ -175,6 +173,7 @@ $(function() {
         };
 
         self.removeProfile = function(data) {
+        	if (self.requestInProgress()) { return;}
         	
             self.requestInProgress(true);
             $.ajax({
@@ -195,6 +194,7 @@ $(function() {
         };
 
         self.updateProfile = function(profile, callback) {
+        	if (self.requestInProgress()) { return;}
             if (profile == undefined) {
                 profile = self._editorData();
             }
@@ -246,6 +246,7 @@ $(function() {
         };
         
         self.duplicateProfile = function(data) {
+        	if (self.requestInProgress()) { return;}
         	
         	var dataCopy = jQuery.extend(true, {}, data);
         	dataCopy.name = "copy of " + data.name;
@@ -280,6 +281,7 @@ $(function() {
         
         
         self.showEditProfileDialog = function(data, add) {
+        	if (self.requestInProgress()) { return;}
             
         	if (add == undefined) {
         		add = false;
@@ -561,8 +563,9 @@ $(function() {
          
         self.flashProfile = function(profile) {
         	if (!self.depInstalled()) { return;}
+        	if (self.requestInProgress()) { return;}
         	//console.log('makeMarlin');
-        	self.isBusy(true);
+        	self.requestInProgress(true);
         	self._markWorking('Flash Printer', 'Starting......');
      
 
@@ -577,14 +580,14 @@ $(function() {
                 contentType: "application/json; charset=UTF-8",
                 complete: function() {
                 	self._markDone();
-                	self.isBusy(false);
+                	self.requestInProgress(false);
                 }
             });
         };
         
         self.installDep = function() {
         	 	
-        	self.isBusy(true);
+        	self.requestInProgress(true);
         	self._markWorking('Install', 'installing....');
      
 
@@ -595,7 +598,7 @@ $(function() {
                 contentType: "application/json; charset=UTF-8",
                 complete: function() {
                 	self._markDone();
-                	self.isBusy(false);
+                	self.requestInProgress(false);
                 	self.checkInstalledDep()
                 }
             });
