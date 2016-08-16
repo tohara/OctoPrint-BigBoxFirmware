@@ -195,8 +195,6 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     depList = ['avr-libc', 'avrdude', 'make']
 
     @octoprint.plugin.BlueprintPlugin.route("/check_dep", methods=["POST"])
-    @octoprint.server.util.flask.restricted_access
-    @octoprint.server.admin_permission.require(403)
     def check_dep(self):
         #cache = apt.Cache()
         
