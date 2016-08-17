@@ -15,6 +15,7 @@ from octoprint.events import Events
 from subprocess import call, Popen, PIPE
 import threading
 import time
+import re
 
 
 
@@ -230,8 +231,10 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 profile = eval(f.read())['profile']
 #                 profile['isDefault'] = False
                 returnDict[profile['id']] = profile 
-                self.updateDefineLib(defineLib, profile)
-                       
+#                 self.updateDefineLib(defineLib, profile)
+
+                
+        defineLib = self.getDefLib()       
                 
         repos = self.getRepos()
                 
@@ -293,6 +296,88 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             
         defineLib[profile['url']][profile['branch']] = defList
         
+     
+    def getDefLib(self):
+        dataFolder = self.get_plugin_data_folder()
+        settingsFolder = dataFolder + '/settings'
+        
+        if not os.path.isdir(settingsFolder):
+            os.mkdir(settingsFolder)
+        
+        defLibFile = settingsFolder + '/deflib'
+        
+        if os.path.isfile(defLibFile):            
+            with open(defLibFile, 'r+b') as f:
+                currentDefLib = eval(f.read())
+        else:
+            currentDefLib = {}
+            
+        return currentDefLib      
+    
+    def addRepoToDefLib(self, url):
+        
+        gitInfo = self.getGitInfo(self.getRepoNamePath(url))
+        
+        for branch in gitInfo['branchList']:
+            self.addDefineLibEntry(url, branch)
+        
+           
+        
+    def addDefineLibEntry(self, url, branch):
+        defReg = re.compile('\s*(\/\/)?\s*#define\s+(\S+)')
+        
+        dataFolder = self.get_plugin_data_folder()
+        settingsFolder = dataFolder + '/settings'
+        
+        if not os.path.isdir(settingsFolder):
+            os.mkdir(settingsFolder)
+        
+        defLibFile = settingsFolder + '/deflib'
+        
+        if os.path.isfile(defLibFile):            
+            with open(defLibFile, 'r+b') as f:
+                currentDefLib = eval(f.read())
+        else:
+            currentDefLib = {}
+        
+        try:
+            repoPath = self.getRepoNamePath(url)
+            marlinFolder = repoPath + '/Marlin'
+            self.execute(['git', 'checkout', '-f', branch], cwd= repoPath)
+        except:
+            return
+        
+        if not os.path.exists(marlinFolder):
+            return
+        
+        templates = ('Configuration.h', 'Configuration_adv.h')
+        defList = []
+       
+        for template in templates:
+            if not os.path.isfile(marlinFolder + '/' + template):
+                return
+            tempFile = open(marlinFolder + '/' + template, 'r')
+            
+            
+            for line in tempFile.readlines():
+                defRes = defReg.search(line)
+                
+                if defRes:
+                    identifier = defRes.group(2)
+                    if identifier not in defList:
+                        defList.append(identifier)
+                 
+                    
+            
+            tempFile.close()
+        
+        if not currentDefLib.has_key(url):
+            currentDefLib[url] = {}
+            
+        currentDefLib[url][branch] = defList
+        
+        with open(defLibFile, 'w+b') as f:
+            f.write(str(currentDefLib))
         
     
     @octoprint.plugin.BlueprintPlugin.route("/install", methods=["POST"])
@@ -419,6 +504,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                     repoUserFolder = self.getRepoUserPath(repo['repoUrl'])
                     
                     self.execute(['git', 'clone', '-v', '--progress', repo['repoUrl']], cwd= repoUserFolder)
+                    
+                    self.addRepoToDefLib(repo['repoUrl'])
           
        
         return flask.make_response("", 204)
@@ -436,6 +523,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         self.execute(['git', 'checkout', '-f'], cwd= repoNamePath) # Throw away any changes before pull
         self.execute(['git', 'pull', '-f'], cwd= repoNamePath)
+        
+        self.addRepoToDefLib(repo['repoUrl'])
        
        
         return flask.make_response("", 204)
@@ -555,8 +644,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     def getRepoNamePath(self, repoUrl):
         
         repoNamePath = self.getRepoUserPath(repoUrl) + '/' + self.getRepoName(repoUrl)
-        if not os.path.isdir(repoNamePath):
-            os.mkdir(repoNamePath)
+#         if not os.path.isdir(repoNamePath):
+#             os.mkdir(repoNamePath)
         
         return repoNamePath
     
