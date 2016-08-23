@@ -46,6 +46,8 @@ $(function() {
         self.editorBranchList = ko.observableArray(undefined);
         self.editorUrlList = ko.observableArray(undefined);
         self.defineLib = ko.observableArray(undefined);
+        self.editorDefineValueList = ko.observableArray(undefined);
+        self.editorDefineValueSelected = ko.observableArray(undefined);
         
         self.repoUrlList = ko.observableArray(undefined);
         self.repoEditorUrlList = ko.observableArray(undefined);
@@ -401,8 +403,43 @@ $(function() {
         
         self.addDefine = function() {
         	
-            self.editorDefine.push({identifier: "identifier", enabled: false, value: "", missing: false});
-    
+        	self.editorDefineValueList.removeAll();
+        	try {
+        		self.editorDefineValueList(jQuery.extend(true, [], self.defineLib()['values'][self.editorUrl()][self.editorBranch()]));
+        	}
+        	catch (err) {
+        		
+        	}
+        	self.editorDefineValueList.unshift({'identifier': 'Custom define', 'value': '', 'enabled': true });
+        	
+        	
+        	var defineValueDialog = $("#settings_plugin_bigboxfirmware_defineTemplateDialog");
+            var confirmButton = $("button.btn-confirm", defineValueDialog);
+            var dialogTitle = $("h3.modal-title", defineValueDialog);
+            var defineValueList = $("#settings_plugin_bigboxfirmware_defineTemplateDialog_defineList");
+            var confirmCallback = function() {
+            	ko.utils.arrayPushAll(self.editorDefine,
+            			self.editorDefineValueSelected().map(function(obj) {
+            				var objCopy = jQuery.extend(true, {}, obj);
+            				objCopy['missing'] = false;
+            				return objCopy;
+            			})
+            	);
+           	
+            	defineValueDialog.modal("hide");
+              
+            };
+            
+            
+            dialogTitle.text("All available defines");
+            confirmButton.unbind("click");
+            confirmButton.bind("click", confirmCallback);
+            
+            defineValueList.unbind("dblclick");
+            defineValueList.bind("dblclick", confirmCallback);
+            
+                        
+            defineValueDialog.modal("show");
            
         };
 

@@ -46,6 +46,13 @@
 	left: 45%;
 }
 
+#settings_plugin_bigboxfirmware_defineTemplateDialog_defineList {
+	height: 300px;
+}
+
+
+
+
 table td.settings_plugin_bigboxfirmware_profiles_name, table th.settings_plugin_bigboxfirmware_profiles_name
 	{
 	text-overflow: ellipsis;

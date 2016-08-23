@@ -205,9 +205,29 @@
 </div>
 
 
-
-
-
+<div id="settings_plugin_bigboxfirmware_defineTemplateDialog" class="modal hide fade">
+    <div class="modal-header">
+        <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
+        <h3 class="modal-title"></h3>
+    </div>
+    <div class="modal-body">  
+		<form class="form-horizontal">
+             <div class="row-fluid">
+             	<div class="span5"><h4>Select define(s)</h4></div>           	
+    		</div>
+    		
+    		<div class="row-fluid">
+    			<select class="span12" id="settings_plugin_bigboxfirmware_defineTemplateDialog_defineList" data-bind="options: editorDefineValueList, optionsText: function(item) {return item.identifier;}, selectedOptions: editorDefineValueSelected" multiple></select>
+    		</div>
+    		<p>Use Shift or Ctrl for multiple selection.</p>
+        
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Abort</button>
+        <button class="btn btn-primary btn-confirm" data-bind="enabled: true, css: {disabled: false}">Confirm</button>
+    </div>
+</div>
 
 
 
@@ -224,4 +244,4 @@
     </div>
 </div>
 
-	
+

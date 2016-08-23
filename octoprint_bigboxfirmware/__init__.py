@@ -312,7 +312,29 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         else:
             currentDefLib = {}
             
-        return currentDefLib      
+        if currentDefLib.has_key('version'):
+            if currentDefLib['version'] == self._plugin_version:
+                return currentDefLib
+            
+        self.addAllRepoToDefLib()
+            
+        if os.path.isfile(defLibFile):            
+            with open(defLibFile, 'r+b') as f:
+                currentDefLib = eval(f.read())
+        else:
+            currentDefLib = {}
+            
+        return currentDefLib
+    
+    def addAllRepoToDefLib(self):
+        dataFolder = self.get_plugin_data_folder()        
+        defLibFile = dataFolder + '/settings/deflib'
+        if os.path.isfile(defLibFile):
+            os.remove(defLibFile)
+            
+        for repo in self.getRepos():
+            self.addRepoToDefLib(repo['repoUrl'])
+        
     
     def addRepoToDefLib(self, url):
         
@@ -322,9 +344,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             self.addDefineLibEntry(url, branch)
         
            
-        
     def addDefineLibEntry(self, url, branch):
-        defReg = re.compile('\s*(\/\/)?\s*#define\s+(\S+)')
+        defReg = re.compile('\s*(\/\/)?\s*#define\s+(\S+)\s*(.*)')
         
         dataFolder = self.get_plugin_data_folder()
         settingsFolder = dataFolder + '/settings'
@@ -339,6 +360,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 currentDefLib = eval(f.read())
         else:
             currentDefLib = {}
+            currentDefLib['version'] = self._plugin_version
         
         try:
             repoPath = self.getRepoNamePath(url)
@@ -352,6 +374,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         templates = ('Configuration.h', 'Configuration_adv.h')
         defList = []
+        defValList = []
        
         for template in templates:
             if not os.path.isfile(marlinFolder + '/' + template):
@@ -364,17 +387,33 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 
                 if defRes:
                     identifier = defRes.group(2)
+                    value = defRes.group(3).split('//')[0].strip()
+                    enabled = defRes.group(1) == None
+                    
+                    
                     if identifier not in defList:
                         defList.append(identifier)
-                 
-                    
+                        defValList.append({'identifier': identifier, 'value': value, 'enabled': enabled})
+                    elif enabled:
+                        for i in range(len(defValList)):
+                            if defValList[i]['identifier'] == identifier:
+                                defValList[i]['value'] = value
+                                defValList[i]['enabled'] = enabled
+                        
             
             tempFile.close()
         
         if not currentDefLib.has_key(url):
             currentDefLib[url] = {}
             
+        if not currentDefLib.has_key('values'):
+            currentDefLib['values'] = {}
+            
+        if not currentDefLib['values'].has_key(url):
+            currentDefLib['values'][url] = {}
+            
         currentDefLib[url][branch] = defList
+        currentDefLib['values'][url][branch] = defValList
         
         with open(defLibFile, 'w+b') as f:
             f.write(str(currentDefLib))
