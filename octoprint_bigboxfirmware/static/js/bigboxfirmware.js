@@ -336,6 +336,40 @@ $(function() {
                     	
                     	}
                     ));
+                    
+                    if (self.editorUrlList.indexOf(data.url) == -1) {
+                    	var popup = new PNotify({
+                            title: "Import Profile",
+                            text: "Repository: " + data.url + " is not installed.\nDo you want to install it now?",
+                            
+                            confirm: {
+                            	confirm: true,
+                                buttons: [{
+                                    text: "No"
+                                    
+                                }, {
+                                    text: "Yes",
+                                    addClass: "btn-primary",
+                                    click: function() {
+                                    	self.showRepoDialog();
+                                    	self.repoEditorUrlList.push({repoUrl: data.url, add: true, branchList: []});
+                                    	popup.remove();
+                                    	editDialog.modal("hide");
+                                    	
+                                    }
+                                }]
+                            },
+                            
+                            buttons: {
+                                closer: true,
+                                sticker: false
+                            },
+                            hide: false,
+                            type: 'warning'
+                        });
+                    }
+                    
+                    
                 						
                 },
                 error: function () {
