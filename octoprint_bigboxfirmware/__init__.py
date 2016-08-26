@@ -29,6 +29,9 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     
     
     
+    templates = ('Configuration.h', 'Configuration_adv.h', 'pins_RUMBA.h')
+    
+    
     def on_after_startup(self):
         dataFolder = self.get_plugin_data_folder()
         profileFolder = dataFolder + '/profiles'
@@ -136,7 +139,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 
                 
     def writeMarlinConfig(self, profile, marlinFolder):
-        templates = ('Configuration.h', 'Configuration_adv.h')
+        #templates = ('Configuration.h', 'Configuration_adv.h')
         processedIds = []
         
                
@@ -145,8 +148,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             identifier = splittedLine.strip().split()[1]
             offset = line.replace('//', '').find('#define') * ' '
             
-            if identifier in processedIds:
-                return
+            #if identifier in processedIds:
+            #    return
             
             for param in profile['define']:
                 if param['identifier'] == identifier:
@@ -158,7 +161,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 targFile.write(line)
                 
             
-        for template in templates:
+        for template in self.templates:
             with open(marlinFolder + '/' + template, 'r') as f:
                 templateFileBuffer = f.readlines()
 
@@ -263,7 +266,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             return
             
         
-        templates = ('Configuration.h', 'Configuration_adv.h')
+        #templates = ('Configuration.h', 'Configuration_adv.h')
         defList = []
         
         
@@ -277,7 +280,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 defList.append(identifier)
                
             
-        for template in templates:
+        for template in self.templates:
             tempFile = open(marlinFolder + '/' + template, 'r')
             
             
@@ -376,11 +379,11 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         if not os.path.exists(marlinFolder):
             return
         
-        templates = ('Configuration.h', 'Configuration_adv.h')
+        #templates = ('Configuration.h', 'Configuration_adv.h')
         defList = []
         defValList = []
        
-        for template in templates:
+        for template in self.templates:
             if not os.path.isfile(marlinFolder + '/' + template):
                 return
             tempFile = open(marlinFolder + '/' + template, 'r')
