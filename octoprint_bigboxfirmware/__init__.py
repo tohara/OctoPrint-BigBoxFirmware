@@ -557,15 +557,18 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         repo = flask.request.json['repo']
         repoUrl = repo['repoUrl']
         repoNamePath = self.getRepoNamePath(repoUrl)
+        gitInfo = self.getGitInfo(repoNamePath)
         
         self._sendStatus(line= 'Pull changes from remote:' + repoUrl, stream='stdout')
         
-        self.execute(['git', 'checkout', '-f'], cwd= repoNamePath) # Throw away any changes before pull
-        self.execute(['git', 'pull', '-f'], cwd= repoNamePath)
+        self.execute(['git', 'fetch'], cwd= repoNamePath)
         
-        self.addRepoToDefLib(repo['repoUrl'])
-       
-       
+        for branch in gitInfo['branchList']:
+            self.execute(['git', 'checkout', '-f', branch], cwd= repoNamePath) # Throw away any changes before pull
+            self.execute(['git', 'reset', '--hard', 'origin/' + branch], cwd= repoNamePath)
+            self.addDefineLibEntry(repoUrl, branch)
+        
+        
         return flask.make_response("", 204)
             
     def getRepos(self):
