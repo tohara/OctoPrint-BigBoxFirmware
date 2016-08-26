@@ -225,20 +225,24 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         _,_,fileList = os.walk(profile_folder).next()
         
         returnDict = {}
-        defineLib = {}
+        
         for pFile in fileList:
             with open(profile_folder +'/'+ pFile, 'r+b') as f:
                 profile = eval(f.read())['profile']
-#                 profile['isDefault'] = False
                 returnDict[profile['id']] = profile 
-#                 self.updateDefineLib(defineLib, profile)
 
                 
+        return flask.jsonify(profiles=returnDict)
+    
+    @octoprint.plugin.BlueprintPlugin.route("/firmwarerepos", methods=["GET"])
+    def getRepoList(self):
+             
         defineLib = self.getDefLib()       
                 
         repos = self.getRepos()
                 
-        return flask.jsonify(profiles=returnDict, repos=repos, defineLib = defineLib)
+        return flask.jsonify(repos=repos, defineLib = defineLib)
+    
     
     def updateDefineLib(self, defineLib, profile):
         
