@@ -163,7 +163,7 @@ $(function() {
                     if (callback !== undefined) {
                         callback();
                     }
-                    self.requestData();
+                    self.requestProfileData();
                     
                 },
                 error: function() {
@@ -184,7 +184,7 @@ $(function() {
                 dataType: "json",
                 success: function() {
                     
-                    self.requestData();
+                    self.requestProfileData();
                    
                 },
                 error: function() {
@@ -214,7 +214,7 @@ $(function() {
                     if (callback !== undefined) {
                         callback();
                     }
-                    self.requestData();
+                    self.requestProfileData();
                     
                 },
                 error: function() {
@@ -225,7 +225,7 @@ $(function() {
             });
         };
         
-        self.requestData = function() {
+        self.requestProfileData = function() {
         	items = [];
         	$.ajax({
                 url: PLUGIN_BASEURL + "bigboxfirmware/firmwareprofiles",
@@ -238,6 +238,23 @@ $(function() {
                     });
                 		
                     self.profiles.updateItems(items);
+               
+                    self.requestInProgress(false);
+                	
+                }
+            });       
+     
+        };
+        
+        self.requestRepoData = function() {
+        	items = [];
+        	$.ajax({
+                url: PLUGIN_BASEURL + "bigboxfirmware/firmwarerepos",
+                type: "GET",
+                dataType: "json",
+                success: function(data) {
+                		
+                	
                     self.repoUrlList(data.repos);
                     self.defineLib(data.defineLib);
                     self.requestInProgress(false);
@@ -552,7 +569,7 @@ $(function() {
                 data: JSON.stringify({repo: repo}),
                 success: function() {
                     
-                    self.requestData();
+                    self.requestRepoData();
                     
                     self._markDone();
                 },
@@ -579,7 +596,7 @@ $(function() {
                 success: function() {
                     
                     $("#settings_plugin_bigboxfirmware_repoDialog").modal("hide");
-                    self.requestData();
+                    self.requestRepoData();
                     
                     self._markDone();
                 },
@@ -605,7 +622,10 @@ $(function() {
             if (!self.depInstalled()) {
         		self.checkInstalledDep();
         	}
-            self.requestData();
+            self.requestInProgress(true);
+            self.requestRepoData();
+            self.requestProfileData();
+            
            
            
         };
