@@ -276,7 +276,28 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         for branch in gitInfo['branchList']:
             self.addDefineLibEntry(url, branch)
-           
+            
+    def removeRepoFromDefLib(self, url):
+        dataFolder = self.get_plugin_data_folder()
+        settingsFolder = dataFolder + '/settings'
+        
+        if not os.path.isdir(settingsFolder):
+            return
+        
+        defLibFile = settingsFolder + '/deflib'
+        
+        if os.path.isfile(defLibFile):            
+            with open(defLibFile, 'r+b') as f:
+                currentDefLib = eval(f.read())
+        else:
+            return
+        
+        currentDefLib.pop(url, None)
+        currentDefLib['values'].pop(url, None)
+        
+        with open(defLibFile, 'w+b') as f:
+            f.write(str(currentDefLib))
+        
     def addDefineLibEntry(self, url, branch):
         defReg = re.compile('\s*(\/\/)?\s*#define\s+(\S+)\s*(.*)')
         
@@ -454,6 +475,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 repoUserFolder = self.getRepoUserPath(exsitingRepo['repoUrl'])
                 #print 'Going to delete:', exsitingRepo['repoUrl']
                 self.execute(['rm', '-rfv', self.getRepoName(exsitingRepo['repoUrl'])], cwd= repoUserFolder)
+                self.removeRepoFromDefLib(exsitingRepo['repoUrl'])
         
         for repo in repoList:
             
