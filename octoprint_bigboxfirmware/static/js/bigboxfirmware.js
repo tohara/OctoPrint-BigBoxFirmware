@@ -51,6 +51,7 @@ $(function() {
         
         self.repoUrlList = ko.observableArray(undefined);
         self.repoEditorUrlList = ko.observableArray(undefined);
+        self.repoListInitialized = false;
 
         self._cleanProfile = function() {
             return {
@@ -260,6 +261,7 @@ $(function() {
                     self.repoUrlList(data.repos);
                     self.defineLib(data.defineLib);                    
                     self.requestInProgress(false);
+                    self.repoListInitialized = true;
                     
                     if (callback != undefined) {
                     	callback();
@@ -316,7 +318,7 @@ $(function() {
                 add = true;
             }
             
-            if (self.defineLib().length == 0) {
+            if (!self.repoListInitialized) {
             	self.requestRepoData(function() {self.showEditProfileDialog(data, add);});
             	return;
             }
@@ -510,7 +512,7 @@ $(function() {
         
         self.showRepoDialog = function() {
            
-        	if (self.repoUrlList().length == 0) {
+        	if (!self.repoListInitialized) {
             	self.requestRepoData(self.showRepoDialog);
             	return;
             }
