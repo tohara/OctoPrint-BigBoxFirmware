@@ -100,7 +100,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             
         self._sendStatus(line='Cleaning up build files....', stream='message')
              
-        #self.execute(['make', 'clean', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath], cwd=marlinFolder)
+        self.execute(['make', 'clean', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath], cwd=marlinFolder)
 
  
         return flask.make_response("Ok.", 200)
