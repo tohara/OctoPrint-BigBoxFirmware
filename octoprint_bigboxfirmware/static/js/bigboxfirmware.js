@@ -226,6 +226,7 @@ $(function() {
         };
         
         self.requestProfileData = function() {
+        	self.requestInProgress(true);
         	items = [];
         	$.ajax({
                 url: PLUGIN_BASEURL + "bigboxfirmware/firmwareprofiles",
@@ -247,6 +248,7 @@ $(function() {
         };
         
         self.requestRepoData = function() {
+        	self.requestInProgress(true);
         	items = [];
         	$.ajax({
                 url: PLUGIN_BASEURL + "bigboxfirmware/firmwarerepos",
@@ -259,7 +261,8 @@ $(function() {
                     self.defineLib(data.defineLib);
                     self.requestInProgress(false);
                 	
-                }
+                },
+                async: false
             });       
      
         };
@@ -297,8 +300,7 @@ $(function() {
         	return define;
         	
         };
-        
-        
+            
         self.showEditProfileDialog = function(data, add) {
         	if (self.requestInProgress()) { return;}
             
@@ -311,7 +313,10 @@ $(function() {
                 add = true;
             }
             
-            
+            if (self.defineLib().length == 0) {
+            	self.requestRepoData();
+            }
+          
             self.editorUrlList.removeAll();
         	_.each(self.repoUrlList(), function(repo) {  
 //        		console.log('add repo url:');
@@ -501,7 +506,10 @@ $(function() {
         
         self.showRepoDialog = function() {
            
-            
+        	if (self.repoUrlList().length == 0) {
+            	self.requestRepoData();
+            }
+        	
             var repoDialog = $("#settings_plugin_bigboxfirmware_repoDialog");
             var confirmButton = $("button.btn-confirm", repoDialog);
             var dialogTitle = $("h3.modal-title", repoDialog);
@@ -623,7 +631,7 @@ $(function() {
         		self.checkInstalledDep();
         	}
             self.requestInProgress(true);
-            self.requestRepoData();
+            //self.requestRepoData();
             self.requestProfileData();
             
            
