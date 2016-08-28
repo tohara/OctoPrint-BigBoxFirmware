@@ -51,6 +51,7 @@ $(function() {
         
         self.repoUrlList = ko.observableArray(undefined);
         self.repoEditorUrlList = ko.observableArray(undefined);
+        self.repoListInitialized = false;
 
         self._cleanProfile = function() {
             return {
@@ -226,6 +227,7 @@ $(function() {
         };
         
         self.requestProfileData = function() {
+        	self.requestInProgress(true);
         	items = [];
         	$.ajax({
                 url: PLUGIN_BASEURL + "bigboxfirmware/firmwareprofiles",
@@ -246,7 +248,8 @@ $(function() {
      
         };
         
-        self.requestRepoData = function() {
+        self.requestRepoData = function(callback) {
+        	self.requestInProgress(true);
         	items = [];
         	$.ajax({
                 url: PLUGIN_BASEURL + "bigboxfirmware/firmwarerepos",
@@ -256,8 +259,13 @@ $(function() {
                 		
                 	
                     self.repoUrlList(data.repos);
-                    self.defineLib(data.defineLib);
+                    self.defineLib(data.defineLib);                    
                     self.requestInProgress(false);
+                    self.repoListInitialized = true;
+                    
+                    if (callback != undefined) {
+                    	callback();
+                    }
                 	
                 }
             });       
@@ -297,8 +305,7 @@ $(function() {
         	return define;
         	
         };
-        
-        
+            
         self.showEditProfileDialog = function(data, add) {
         	if (self.requestInProgress()) { return;}
             
@@ -311,7 +318,11 @@ $(function() {
                 add = true;
             }
             
-            
+            if (!self.repoListInitialized) {
+            	self.requestRepoData(function() {self.showEditProfileDialog(data, add);});
+            	return;
+            }
+          
             self.editorUrlList.removeAll();
         	_.each(self.repoUrlList(), function(repo) {  
 //        		console.log('add repo url:');
@@ -501,7 +512,11 @@ $(function() {
         
         self.showRepoDialog = function() {
            
-            
+        	if (!self.repoListInitialized) {
+            	self.requestRepoData(self.showRepoDialog);
+            	return;
+            }
+        	
             var repoDialog = $("#settings_plugin_bigboxfirmware_repoDialog");
             var confirmButton = $("button.btn-confirm", repoDialog);
             var dialogTitle = $("h3.modal-title", repoDialog);
@@ -623,7 +638,7 @@ $(function() {
         		self.checkInstalledDep();
         	}
             self.requestInProgress(true);
-            self.requestRepoData();
+            //self.requestRepoData();
             self.requestProfileData();
             
            

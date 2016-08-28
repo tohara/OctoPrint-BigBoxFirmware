@@ -1,14 +1,10 @@
 # coding=utf-8
 from __future__ import absolute_import
-
-
 import flask
 import json
 import os
-
 import octoprint.plugin
 import httplib2
-
 import octoprint.server.util.flask
 from octoprint.server import admin_permission
 from octoprint.events import Events
@@ -17,8 +13,6 @@ import threading
 import time
 import re
 
-
-
 class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                            octoprint.plugin.TemplatePlugin,
                            octoprint.plugin.AssetPlugin,
@@ -26,24 +20,24 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                            octoprint.plugin.EventHandlerPlugin,
                            octoprint.plugin.StartupPlugin):
     
-    
-    
-    
-    templates = ('Configuration.h', 'Configuration_adv.h', 'pins_RUMBA.h')
-    
-    
+    def __init__(self):
+        self.templates = ('Configuration.h', 'Configuration_adv.h', 'pins_RUMBA.h')
+        self.depList = ['avr-libc', 'avrdude', 'make']
+        self.depInstalled = False
+        
+    def on_startup(self, host, port):
+        self.depInstalled = self.check_dep()
+        self.getDefLib()
+               
     def on_after_startup(self):
         dataFolder = self.get_plugin_data_folder()
         profileFolder = dataFolder + '/profiles'
         defaultProfileFolder = self._basefolder + '/default_profiles'
-      
+              
         if not os.path.isdir(profileFolder):
             os.mkdir(profileFolder)
             call(['cp', '-a', defaultProfileFolder + '/.', profileFolder + '/' ])
-            
         
-        
-    
     @octoprint.plugin.BlueprintPlugin.route("/make", methods=["POST"])
     @octoprint.server.util.flask.restricted_access
     @octoprint.server.admin_permission.require(403)
@@ -106,11 +100,10 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             
         self._sendStatus(line='Cleaning up build files....', stream='message')
              
-        self.execute(['make', 'clean', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath], cwd=marlinFolder)
+        #self.execute(['make', 'clean', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath], cwd=marlinFolder)
 
  
         return flask.make_response("Ok.", 200)
-        
         
     def getMakeDep(self, marlinFolder):
         #TODO: Temporary fix to be able to use RC6 and RC7 source. Need to get this done properly by the makefile
@@ -135,31 +128,9 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         else:
             return depRC6
                 
-        
-                
-                
     def writeMarlinConfig(self, profile, marlinFolder):
-        #templates = ('Configuration.h', 'Configuration_adv.h')
-        processedIds = []
-        
-               
-        def insertDefine(splittedLine, targFile, line):
-            
-            identifier = splittedLine.strip().split()[1]
-            offset = line.replace('//', '').find('#define') * ' '
-            
-            #if identifier in processedIds:
-            #    return
-            
-            for param in profile['define']:
-                if param['identifier'] == identifier:
-                    enabled = '' if param['enabled'] else '//'
-                    targFile.write(enabled + offset + '#define ' + param['identifier'] + ' ' + param['value'] + ' //Modified by BigBoxFirmware Plugin\n')
-                    processedIds.append(param['identifier'])
-                    break
-            else:
-                targFile.write(line)
-                
+     
+        defReg = re.compile('\s*(\/\/)?\s*#define\s+(\S+)\s*(.*)')
             
         for template in self.templates:
             with open(marlinFolder + '/' + template, 'r') as f:
@@ -168,25 +139,26 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             targFile = open(marlinFolder + '/' + template, 'w')  
                             
             for line in templateFileBuffer:
+                defRes = defReg.search(line)
                 
-                splitted = line.split('//', 2)
-                
-                if splitted[0].strip()[:7] == '#define':
-                    insertDefine(splitted[0], targFile, line)
-                    continue
-                
-                elif len(splitted) >= 2:
-                    if splitted[1].strip()[:7] == '#define':
-                        insertDefine(splitted[1], targFile, line)
-                        continue
+                if defRes:
+                    identifier = defRes.group(2)
+                                        
+                    for param in profile['define']:
+                        if param['identifier'] == identifier:
+                            enabled = '' if param['enabled'] else '//'
+                            targFile.write(enabled + '#define ' + param['identifier'] + ' ' + param['value'] + ' //Modified by BigBoxFirmware Plugin\n')
+                            break
+                    else:
+                        targFile.write(line)
                     
-                
-                targFile.write(line)
+                else:
+                    targFile.write(line)
+                           
            
             targFile.flush()
             targFile.close()
-            
-            
+             
     def getProfileFromId(self, profileId):
         dataFolder = self.get_plugin_data_folder()
         profilePath = dataFolder + '/profiles/' + profileId
@@ -194,11 +166,11 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 profile = eval(f.read())['profile']
                 
         return profile       
-            
-    
-    depList = ['avr-libc', 'avrdude', 'make']
-
+      
     @octoprint.plugin.BlueprintPlugin.route("/check_dep", methods=["POST"])
+    def getIsDepInstalled(self):
+        return flask.jsonify(isInstalled=self.depInstalled)
+    
     def check_dep(self):
         #cache = apt.Cache()
         
@@ -215,7 +187,21 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             except:
                 isInstalled = False
                     
-        return flask.jsonify(isInstalled=isInstalled)
+        return isInstalled
+    
+    @octoprint.plugin.BlueprintPlugin.route("/install", methods=["POST"])
+    @octoprint.server.util.flask.restricted_access
+    @octoprint.server.admin_permission.require(403)
+    def install_dep(self):
+        
+        installCommand = ['sudo', '-S', 'apt-get', 'install', '-y'] + self.depList
+        self._sendStatus(line='Command: ' + ' '.join(installCommand), stream='stdout')
+        
+        self.execute(installCommand, stdin=PIPE, pswd='raspberry')
+        
+        self.depInstalled = self.check_dep()
+        
+        return flask.make_response("Ok.", 200)
     
     @octoprint.plugin.BlueprintPlugin.route("/firmwareprofiles", methods=["GET"])
     def getProfileList(self):
@@ -246,64 +232,6 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 
         return flask.jsonify(repos=repos, defineLib = defineLib)
     
-    
-    def updateDefineLib(self, defineLib, profile):
-        
-        if defineLib.has_key(profile['url']):
-            if defineLib[profile['url']].has_key(profile['branch']):
-                return
-        else:
-            defineLib[profile['url']] =  {}
-            
-        try:
-            repoPath = self.getRepoNamePath(profile['url'])
-            marlinFolder = repoPath + '/Marlin'
-            self.execute(['git', 'checkout', '-f', profile['branch']], cwd= repoPath)
-        except:
-            return
-        
-        if not os.path.exists(marlinFolder):
-            return
-            
-        
-        #templates = ('Configuration.h', 'Configuration_adv.h')
-        defList = []
-        
-        
-        def insertDefine(splittedLine):
-            
-            sp = splittedLine.strip().split()
-            identifier = sp[1]
-                
-                
-            if identifier not in defList:
-                defList.append(identifier)
-               
-            
-        for template in self.templates:
-            tempFile = open(marlinFolder + '/' + template, 'r')
-            
-            
-            for line in tempFile.readlines():
-                
-                splitted = line.split('//', 2)
-                
-                if splitted[0].strip()[:7] == '#define':
-                    insertDefine(splitted[0])
-                    continue
-                
-                elif len(splitted) >= 2:
-                    if splitted[1].strip()[:7] == '#define':
-                        insertDefine(splitted[1])
-                        continue
-                    
-            
-            tempFile.close()
-            
-            
-        defineLib[profile['url']][profile['branch']] = defList
-        
-     
     def getDefLib(self):
         dataFolder = self.get_plugin_data_folder()
         settingsFolder = dataFolder + '/settings'
@@ -341,15 +269,13 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             
         for repo in self.getRepos():
             self.addRepoToDefLib(repo['repoUrl'])
-        
-    
+       
     def addRepoToDefLib(self, url):
         
         gitInfo = self.getGitInfo(self.getRepoNamePath(url))
         
         for branch in gitInfo['branchList']:
             self.addDefineLibEntry(url, branch)
-        
            
     def addDefineLibEntry(self, url, branch):
         defReg = re.compile('\s*(\/\/)?\s*#define\s+(\S+)\s*(.*)')
@@ -424,19 +350,6 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         with open(defLibFile, 'w+b') as f:
             f.write(str(currentDefLib))
-        
-    
-    @octoprint.plugin.BlueprintPlugin.route("/install", methods=["POST"])
-    @octoprint.server.util.flask.restricted_access
-    @octoprint.server.admin_permission.require(403)
-    def install_dep(self):
-        
-        installCommand = ['sudo', '-S', 'apt-get', 'install', '-y'] + self.depList
-        self._sendStatus(line='Command: ' + ' '.join(installCommand), stream='stdout')
-        
-        self.execute(installCommand, stdin=PIPE, pswd='raspberry')
-                    
-        return flask.make_response("Ok.", 200)
     
     @octoprint.plugin.BlueprintPlugin.route("/firmwareprofiles", methods=["POST"])
     @octoprint.server.util.flask.restricted_access
@@ -488,7 +401,6 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
    
        
         return flask.jsonify(profile)     
-        
         
     @octoprint.plugin.BlueprintPlugin.route("/firmwareprofiles/<string:identifier>", methods=["DELETE"])
     @octoprint.server.util.flask.restricted_access
@@ -634,7 +546,6 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             
         return retDict if self.isValidGithubRepo(retDict['repoUrl'], False) else None
     
-        
     def isValidGithubRepo(self, repoUrl, checkOnline=True):
         
         valid = False
@@ -662,6 +573,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
             return repoUrl.replace('https://', '').split('/')[1]
         except Exception:
             raise self.RepoUrlException('The repo URL is wrong format!')
+    
     def getRepoPath(self):
         dataFolder = self.get_plugin_data_folder()
         repoFolder = dataFolder + '/repos'
@@ -798,6 +710,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         ]
     
     #~~ Extra methods
+    
     def _sendStatus(self, line, stream):
         self._plugin_manager.send_plugin_message(self._identifier, dict(type="logline", line=line, stream=stream))
 
