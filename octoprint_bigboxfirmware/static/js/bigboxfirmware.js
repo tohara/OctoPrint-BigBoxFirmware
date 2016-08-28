@@ -247,7 +247,7 @@ $(function() {
      
         };
         
-        self.requestRepoData = function() {
+        self.requestRepoData = function(callback) {
         	self.requestInProgress(true);
         	items = [];
         	$.ajax({
@@ -258,11 +258,14 @@ $(function() {
                 		
                 	
                     self.repoUrlList(data.repos);
-                    self.defineLib(data.defineLib);
+                    self.defineLib(data.defineLib);                    
                     self.requestInProgress(false);
+                    
+                    if (callback != undefined) {
+                    	callback();
+                    }
                 	
-                },
-                async: false
+                }
             });       
      
         };
@@ -314,7 +317,8 @@ $(function() {
             }
             
             if (self.defineLib().length == 0) {
-            	self.requestRepoData();
+            	self.requestRepoData(function() {self.showEditProfileDialog(data, add);});
+            	return;
             }
           
             self.editorUrlList.removeAll();
@@ -507,7 +511,8 @@ $(function() {
         self.showRepoDialog = function() {
            
         	if (self.repoUrlList().length == 0) {
-            	self.requestRepoData();
+            	self.requestRepoData(self.showRepoDialog);
+            	return;
             }
         	
             var repoDialog = $("#settings_plugin_bigboxfirmware_repoDialog");
