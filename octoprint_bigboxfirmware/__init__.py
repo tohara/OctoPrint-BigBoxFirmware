@@ -67,6 +67,12 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         
         self.execute(['git', 'checkout', '-f', profile['branch']], cwd= repoPath)
         
+        if profile['url'] in self.getAutoUpdateList():
+            self._sendStatus(line='Updating selected branch...', stream='message')
+            self.execute(['git', 'fetch'], cwd= repoPath)
+            self.execute(['git', 'reset', '--hard', 'origin/' + profile['branch']], cwd= repoPath)
+            self.addDefineLibEntry(profile['url'], profile['branch'])
+        
         self._sendStatus(line='Writing configuration..........', stream='message')
         
         self.writeMarlinConfig(profile, marlinFolder)
@@ -470,6 +476,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
     def saveRepos(self):
         repoList = flask.request.json['repoUrlList']
         
+        self._sendStatus(line='Checking if there are any changes.', stream='message')
+        
         for exsitingRepo in self.getRepos():
             if exsitingRepo['repoUrl'] not in map(lambda x: x['repoUrl'], repoList):
                 repoUserFolder = self.getRepoUserPath(exsitingRepo['repoUrl'])
@@ -486,7 +494,8 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                     self.execute(['git', 'clone', '-v', '--progress', repo['repoUrl']], cwd= repoUserFolder)
                     
                     self.addRepoToDefLib(repo['repoUrl'])
-          
+        
+        self.saveAutoUpdateList(repoList)  
        
         return flask.make_response("", 204)
     
@@ -522,11 +531,46 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
                 gitInfo = self.getGitInfo(repo_folder + '/' + repoUser + '/' + repo)
                 if not gitInfo == None:
                     gitInfo['add'] = False
+                    if gitInfo['repoUrl'] in self.getAutoUpdateList():
+                        gitInfo['autoUpdate'] = True
                     repoList.append(gitInfo) 
                 
-        
         return repoList
+    
+    def saveAutoUpdateList(self, repoList):
+        dataFolder = self.get_plugin_data_folder()
+        settingsFolder = dataFolder + '/settings'
         
+        if not os.path.isdir(settingsFolder):
+            os.mkdir(settingsFolder)
+        
+        autoFile = settingsFolder + '/autoReg'
+        
+        autoList = []
+        
+        for repo in repoList:
+            if repo['autoUpdate'] == True:
+                autoList.append(repo['repoUrl'])
+                
+        with open(autoFile, 'w') as f:
+            f.write(str(autoList))
+    
+    def getAutoUpdateList(self):
+        dataFolder = self.get_plugin_data_folder()
+        settingsFolder = dataFolder + '/settings'
+        
+        if not os.path.isdir(settingsFolder):
+            os.mkdir(settingsFolder)
+        
+        autoFile = settingsFolder + '/autoReg'
+        
+        autoList = []
+        if os.path.isfile(autoFile):        
+            with open(autoFile, 'r') as f:
+                autoList = eval(f.read())
+        
+        return autoList
+    
     def getGitInfo(self, path):
         # * remote origin
         #   Fetch URL: https://github.com/tohara/OctoPrint-BigBoxFirmware.git
