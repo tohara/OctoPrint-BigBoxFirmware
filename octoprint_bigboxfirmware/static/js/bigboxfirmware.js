@@ -521,9 +521,15 @@ $(function() {
             var confirmButton = $("button.btn-confirm", repoDialog);
             var dialogTitle = $("h3.modal-title", repoDialog);
             
-            self.repoEditorUrlList(self.repoUrlList.slice());
+            self.repoEditorUrlList(self.repoUrlList().map(function(item) {
+            	var itemCopy = jQuery.extend(true, {}, item);
+            	if (itemCopy.autoUpdate == undefined) {
+            		itemCopy.autoUpdate = false;
+            	}
+            	return itemCopy;
+            	})
+            );
           
-
             dialogTitle.text("Github Firmware sources");
             confirmButton.unbind("click");
             confirmButton.bind("click", function() {
@@ -536,7 +542,7 @@ $(function() {
         
         self.addRepo = function() {
         	
-            self.repoEditorUrlList.push({repoUrl: "https://", add: true, branchList: []});
+            self.repoEditorUrlList.push({repoUrl: "https://", add: true, branchList: [], autoUpdate: false});
     
         };
         
@@ -600,7 +606,7 @@ $(function() {
         
         self.confirmRepo = function() {
         	self.requestInProgress(true);
-        	self._markWorking('Update GitHub Repositories', 'Starting....');
+        	self._markWorking('Update GitHub Repositories', 'Saving....');
         	
         	$.ajax({
                 url: PLUGIN_BASEURL + "bigboxfirmware/updateRepos/",

@@ -174,11 +174,14 @@
     		</div>
             <div data-bind="foreach: repoEditorUrlList">
 		        <div class="row-fluid" style="margin-bottom: 5px">
-		            <div class="span10">
+		            <div class="span9">
 		                <input type="text" class="span12 text-left" data-bind="value: repoUrl, enable: add, css: {disabled: !add}">
 		            </div>
 		            
-		            
+		            <div class="input-append span1">
+		                <input type="checkbox" class="offset4" data-bind="checked: autoUpdate" title="Always Update Repo Before Build">
+		                
+		            </div>
 		           
 		            <div class="span1">
 		                <a title="Force Update Repo" class="btn btn-danger" data-bind="click: $root.updateRepo"><i class="icon-refresh"></i></a>
