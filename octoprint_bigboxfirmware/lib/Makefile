@@ -105,20 +105,21 @@ SRC = wiring.c \
 	u8g_page.c u8g_pb.c u8g_state.c
 	
 
-CXXSRC ?= WMath.cpp WString.cpp Print.cpp Marlin_main.cpp	\
-	MarlinSerial.cpp Sd2Card.cpp SdBaseFile.cpp SdFatUtil.cpp	\
-	SdFile.cpp SdVolume.cpp planner.cpp stepper.cpp \
-	temperature.cpp cardreader.cpp configuration_store.cpp \
-	watchdog.cpp SPI.cpp servo.cpp Tone.cpp ultralcd.cpp digipot_mcp4451.cpp \
-	dac_mcp4728.cpp vector_3.cpp qr_solve.cpp endstops.cpp stopwatch.cpp \
-	mesh_bed_leveling.cpp utility.cpp
+#CXXSRC ?= WMath.cpp WString.cpp Print.cpp Marlin_main.cpp	\
+#	MarlinSerial.cpp Sd2Card.cpp SdBaseFile.cpp SdFatUtil.cpp	\
+#	SdFile.cpp SdVolume.cpp planner.cpp stepper.cpp \
+#	temperature.cpp cardreader.cpp configuration_store.cpp \
+#	watchdog.cpp SPI.cpp servo.cpp Tone.cpp ultralcd.cpp digipot_mcp4451.cpp \
+#	dac_mcp4728.cpp vector_3.cpp qr_solve.cpp endstops.cpp stopwatch.cpp \
+#	mesh_bed_leveling.cpp utility.cpp
+#
+#CXXSRC += LiquidCrystal.cpp
 
-CXXSRC += LiquidCrystal.cpp
+CXXSRC = $(wildcard *.cpp)
 
-
+CXXSRC += LiquidCrystal.cpp WMath.cpp WString.cpp Print.cpp
 
 CXXSRC += main.cpp
-
 
 FORMAT = ihex
 
