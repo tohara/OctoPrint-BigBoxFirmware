@@ -567,7 +567,7 @@ $(function() {
         
         self.addRepo = function() {
         	
-            self.repoEditorUrlList.push({repoUrl: "https://", add: true, branchList: [], autoUpdate: false});
+            self.repoEditorUrlList.push({repoUrl: "", add: true, branchList: [], autoUpdate: false});
     
         };
         
