@@ -108,6 +108,7 @@
             
         </form>    
 		<form class="form-horizontal">
+					
              <div class="row-fluid">
              	<div class="span5"><h4>Define Identifier</h4></div>
 				
@@ -155,6 +156,11 @@
             <a class="btn " data-bind="attr:{href: '/plugin/bigboxfirmware/export_profile/' + $root.editorIdentifier()}">Export...</a>
         </span>
          
+		<div class="btn-group offset3 pull-left">
+			<a class="btn" id="plugin_bigboxfirmware_sort_alphabet" href="#"><i class="icon-sort-by-alphabet" title="Sort by alphabet"></i></a>
+			<a class="btn" id="plugin_bigboxfirmware_sort_config" href="#"><i class="icon-sort-by-attributes" title="Sort by order in config files"></i></a>
+		</div>
+				
         <button class="btn" data-dismiss="modal" aria-hidden="true">Abort</button>
         <button class="btn btn-primary btn-confirm" data-bind="enabled: enableEditorSubmitButton, css: {disabled: !enableEditorSubmitButton()}"><i class="icon-spinner icon-spin" data-bind="visible: requestInProgress()"></i>Confirm</button>
     </div>
