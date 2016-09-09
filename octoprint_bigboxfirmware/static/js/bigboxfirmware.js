@@ -282,7 +282,7 @@ $(function() {
         	self.showEditProfileDialog(dataCopy, true);
         };
         
-        self.defineSortFunc = function(a, b) {
+        self.defineSortFuncConf = function(a, b) {
             try {
             	indexA = self.defineLib()[self.editorUrl()][self.editorBranch()].indexOf(a["identifier"]);
             	indexB = self.defineLib()[self.editorUrl()][self.editorBranch()].indexOf(b["identifier"]);
@@ -293,6 +293,15 @@ $(function() {
         	
             return indexA - indexB;
         };
+        
+        self.defineSortFuncAlpha = function(a, b) {
+            // sorts ascending
+            if (a["identifier"].toLocaleLowerCase() < b["identifier"].toLocaleLowerCase()) return -1;
+            if (a["identifier"].toLocaleLowerCase() > b["identifier"].toLocaleLowerCase()) return 1;
+            return 0;
+        };
+        
+        self.defineSortFunc = self.defineSortFuncConf;
         
         self.defineCheckExist = function(define) {
         	try {
@@ -346,6 +355,22 @@ $(function() {
             var dialogTitle = $("h3.modal-title", editDialog);
             
             var profileImportFile = $("#settings_plugin_bigboxfirmware_profile_import", editDialog);
+            
+            var sortAlphaButton = $("#plugin_bigboxfirmware_sort_alphabet");
+            var sortConfButton = $("#plugin_bigboxfirmware_sort_config");
+            
+            sortAlphaButton.unbind("click");
+            sortAlphaButton.bind("click", function() {
+            	self.defineSortFunc = self.defineSortFuncAlpha;
+            	self.editorDefine(data.define.sort(self.defineSortFunc).map(self.defineCheckExist));
+            	//myObservable.valueHasMutated()
+            });
+            
+            sortConfButton.unbind("click");
+            sortConfButton.bind("click", function() {
+            	self.defineSortFunc = self.defineSortFuncConf;
+            	self.editorDefine(self.editorDefine().sort(self.defineSortFunc).map(self.defineCheckExist));
+            });
             
             
             profileImportFile.fileupload({
@@ -467,7 +492,7 @@ $(function() {
         	
         	self.editorDefineValueList.removeAll();
         	try {
-        		self.editorDefineValueList(jQuery.extend(true, [], self.defineLib()['values'][self.editorUrl()][self.editorBranch()]));
+        		self.editorDefineValueList(jQuery.extend(true, [], self.defineLib()['values'][self.editorUrl()][self.editorBranch()]).sort(self.defineSortFunc));
         	}
         	catch (err) {
         		
