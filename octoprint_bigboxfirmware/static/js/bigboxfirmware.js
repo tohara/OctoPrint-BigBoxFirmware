@@ -362,7 +362,7 @@ $(function() {
             sortAlphaButton.unbind("click");
             sortAlphaButton.bind("click", function() {
             	self.defineSortFunc = self.defineSortFuncAlpha;
-            	self.editorDefine(data.define.sort(self.defineSortFunc).map(self.defineCheckExist));
+            	self.editorDefine(self.editorDefine().sort(self.defineSortFunc).map(self.defineCheckExist));
             	//myObservable.valueHasMutated()
             });
             
