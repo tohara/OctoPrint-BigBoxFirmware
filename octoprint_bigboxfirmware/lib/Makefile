@@ -99,11 +99,15 @@ VPATH += $(BUILD_DIR)
 SRC = wiring.c \
 	wiring_analog.c wiring_digital.c \
 	wiring_pulse.c \
-	wiring_shift.c WInterrupts.c hooks.c \
-	u8g_font.c u8g_delay.c u8g_pb32h1.c u8g_ll_api.c \
-	u8g_rect.c u8g_bitmap.c u8g_com_null.c u8g_clip.c \
-	u8g_page.c u8g_pb.c u8g_state.c
+	wiring_shift.c WInterrupts.c hooks.c
 	
+#	 \
+#	u8g_font.c u8g_delay.c u8g_pb32h1.c u8g_ll_api.c \
+#	u8g_rect.c u8g_bitmap.c u8g_com_null.c u8g_clip.c \
+#	u8g_page.c u8g_pb.c u8g_state.c
+
+
+SRC += $(notdir $(wildcard $(ARDUINO_LIB_DIR)/libraries/U8glib/utility/*.c))
 
 #CXXSRC ?= WMath.cpp WString.cpp Print.cpp Marlin_main.cpp	\
 #	MarlinSerial.cpp Sd2Card.cpp SdBaseFile.cpp SdFatUtil.cpp	\
