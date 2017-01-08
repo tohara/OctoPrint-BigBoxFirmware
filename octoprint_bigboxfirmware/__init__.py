@@ -755,7 +755,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
 				type="github_commit",
 				user="tohara",
 				repo="OctoPrint-BigBoxFirmware",
-                branch="dev",
+                #branch="dev",
 				current=self._plugin_version,
 
 				# update method: pip
