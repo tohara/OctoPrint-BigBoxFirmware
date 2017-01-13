@@ -80,7 +80,7 @@ class BigBoxFirmwarePlugin(octoprint.plugin.BlueprintPlugin,
         self._sendStatus(line='Building Marlin................', stream='message')
         
         #TODO: Temporary fix to be able to use RC6 and RC7 source. Need to get this done properly by the makefile
-        self.execute(['make', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath], cwd=marlinFolder)
+        self.execute(['make', '-j4', '-f', makeFilePath, 'BUILD_DIR=' + buildFolder, 'ARDUINO_LIB_DIR=' + arduinoLibPath], cwd=marlinFolder)
   
         
         if os.path.exists(hexPath):
