@@ -405,7 +405,7 @@ $(function() {
                                     addClass: "btn-primary",
                                     click: function() {
                                     	self.showRepoDialog();
-                                    	self.repoEditorUrlList.push({repoUrl: data.url, add: true, branchList: []});
+                                    	self.repoEditorUrlList.push({repoUrl: data.url, add: true, branchList: [], autoUpdate: false});
                                     	popup.remove();
                                     	editDialog.modal("hide");
                                     	
